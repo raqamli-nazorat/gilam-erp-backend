@@ -31,7 +31,7 @@ jobs:
             cd /var/www/backend/gilam-erp-backend
             
             echo "1. Kodni yangilash (Production)"
-            git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com:raqamli-nazorat/gilam-erp-backend.git
+            git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/raqamli-nazorat/gilam-erp-backend.git
             git fetch origin production
             git reset --hard origin/production
             
