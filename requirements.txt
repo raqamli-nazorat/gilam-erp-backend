@@ -1,0 +1,39 @@
+# Django & Core
+Django==5.2.12
+django-environ==0.13.0
+psycopg2-binary==2.9.11
+pillow==12.2.0
+
+# Django REST Framework & Auth
+djangorestframework==3.17.1
+djangorestframework_simplejwt==5.5.1
+django-allauth==65.18.0
+dj-rest-auth==7.2.0
+
+# API Documentation, Filters & Security
+drf-spectacular==0.29.0
+django-filter==25.2
+django-cors-headers==4.9.0
+
+# Admin & Audit
+django-unfold==0.88.0
+django-auditlog==3.4.1
+
+# Async, Channels & Celery
+channels==4.3.2
+channels-redis==4.2.0
+daphne==4.2.1
+celery==5.6.2
+django-celery-beat==2.8.1
+
+# Caching & Storage
+django-redis==6.0.0
+redis==7.4.0
+django-storages==1.14.6
+boto3==1.36.0
+
+# Integrations & Server
+requests==2.34.2
+aiogram==3.30.0
+gunicorn==23.0.0
+
