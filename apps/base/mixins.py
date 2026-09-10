@@ -3,6 +3,7 @@ API ko'rinishlari va ViewSet'lar uchun bazaviy miksinlar (mixins).
 """
 
 from drf_spectacular.utils import extend_schema
+
 from apps.base.permissions import FullDjangoModelPermissions
 
 
@@ -10,6 +11,7 @@ class DynamicPermissionMixin:
     """
     DRF view'lariga FullDjangoModelPermissions ruxsatnomasini qo'llash uchun miksin.
     """
+
     permission_classes = [FullDjangoModelPermissions]
 
 
@@ -25,9 +27,11 @@ class AutoSchemaMixin:
         tag_name = None
 
         is_viewset = False
-        if cls.__name__.endswith("ViewSet"):
-            is_viewset = True
-        elif hasattr(cls, "get_view_name") and "ViewSet" in cls.__name__:
+        if (
+            cls.__name__.endswith("ViewSet")
+            or hasattr(cls, "get_view_name")
+            and "ViewSet" in cls.__name__
+        ):
             is_viewset = True
 
         if is_viewset:
@@ -43,7 +47,11 @@ class AutoSchemaMixin:
                 except Exception:
                     pass
 
-            if not tag_name and hasattr(cls, "serializer_class") and cls.serializer_class:
+            if (
+                not tag_name
+                and hasattr(cls, "serializer_class")
+                and cls.serializer_class
+            ):
                 meta = getattr(cls.serializer_class, "Meta", None)
                 if meta and hasattr(meta, "model"):
                     tag_name = meta.model.__name__
@@ -64,4 +72,3 @@ class AutoSchemaMixin:
 
         if tag_name:
             extend_schema(tags=[tag_name])(cls)
-

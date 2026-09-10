@@ -11,9 +11,10 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 import os
-import environ
 from datetime import timedelta
 from pathlib import Path
+
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -71,9 +72,20 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "apps.base",
     "apps.audits",
+    "apps.accounts",
+    "apps.organization",
+    "apps.catalog",
+    "apps.warehouse",
+    "apps.sales",
+    "apps.finance",
+    "apps.procurement",
+    "apps.hr",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# Custom User — phone_number orqali login (apps/accounts/models/user.py)
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",

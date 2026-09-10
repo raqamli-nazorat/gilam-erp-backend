@@ -19,9 +19,9 @@ class JWTAuditlogMiddleware(AuditlogMiddleware):
 
     def __call__(self, request):
         if (
-                not hasattr(request, "user")
-                or not request.user
-                or request.user.is_anonymous
+            not hasattr(request, "user")
+            or not request.user
+            or request.user.is_anonymous
         ):
             try:
                 authenticator = JWTAuthentication()

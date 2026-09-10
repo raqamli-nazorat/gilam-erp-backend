@@ -5,8 +5,8 @@ Ushbu modul LogEntry obyektlarini JSON shakliga o'tkazadi
 va actor hamda content_type haqidagi ma'lumotlarni kengaytirib beradi.
 """
 
-from rest_framework import serializers
 from auditlog.models import LogEntry
+from rest_framework import serializers
 
 
 class LogEntrySerializer(serializers.ModelSerializer):
@@ -38,4 +38,3 @@ class LogEntrySerializer(serializers.ModelSerializer):
             "timestamp",
             "additional_data",
         ]
-
