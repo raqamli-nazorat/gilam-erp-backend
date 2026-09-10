@@ -1,0 +1,583 @@
+// =============================================================================
+//      GILAM SOTUVI SAVDO MARKAZLARI UCHUN ERP TIZIMI MA'LUMOTLAR BAZASI
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// 1. TIZIM VA FOYDALANUVCHILAR
+// -----------------------------------------------------------------------------
+
+Table Country {
+  id   integer [primary key] // uuid 16
+  name varchar
+  is_active  boolean [default: true]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Region {
+  id   integer [primary key] // uuid 16
+  name varchar
+  country integer [ref: > Country.id, not null]
+  is_active  boolean [default: true]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table District {
+  id         integer [primary key] // uuid 16
+  region     integer [ref: > Region.id, not null]
+  name       varchar
+  is_active  boolean [default: true]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Organization {
+  id         integer [primary key] // uuid 16
+  name       varchar(255) [not null]
+  inn        varchar(20) [unique, not null]
+  phone      varchar(50)
+  director   varchar(50)
+  region     integer [ref: > Region.id, not null]
+  district   integer [ref: > District.id, not null]
+  address    text
+  prefix     varchar
+  is_active  boolean [default: true]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table Branch {
+  id              integer [primary key] // uuid 16
+  organization    integer [ref: > Organization.id, not null]
+  name            varchar(255) [not null]
+  phone           varchar(50)
+  region          integer [ref: > Region.id, not null]
+  district        integer [ref: > District.id, not null]
+  address         text
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+}
+
+Table Role {
+  id              integer [primary key] // uuid 16
+  name            varchar(255) [not null]
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+}
+
+Table User {
+  id              integer [primary key]      // uuid 16
+  branch_id       integer [ref: > Branch.id, not null]
+  branch          integer [ref: > Branch.id,  not null] // NULL bo'lsa - bosh ofis yoki global admin
+  full_name       varchar(255) [not null]    // username
+  phone_number    varchar(50)
+  role            integer [ref: > Role.id, not null]
+  password_hash   varchar(255) [not null]
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+}
+
+Table Employee {
+  full_name       varchar
+  region          integer [ref: >? Region.id, null]
+  district        integer [ref: >? District.id, null]
+  address         varchar
+  passport_seria  varchar
+  passport_number varchar
+  jsshr           varchar [null]
+  stir            varchar [null]
+  phone_number    varchar [null]
+  id              integer [primary key, increment]
+  branch_id       integer [ref: > Branch.id, not null]
+  name            varchar(100) [not null]
+  description     text
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+}
+
+Table Position {
+  id           integer [primary key, increment]
+  name         varchar(100) [not null]
+  description  text
+  is_active    boolean [default: true]
+  created_at   timestamp [default: `now()`]
+  updated_at   timestamp [default: `now()`]
+}
+
+Table WorkSchedule {
+  id           integer [primary key, increment]
+  branch_id    integer [ref: > Branch.id, not null]
+  name         varchar(100) [not null]
+  description  text
+  from_date    date [not null]
+  to_date      date [not null]
+  from_hour    hour [not null]
+  to_hour      hour [not null]
+  is_active    boolean [default: true]
+  created_at   timestamp [default: `now()`]
+  updated_at   timestamp [default: `now()`]
+}
+
+Table WorkScheduleItem {
+  id           integer [primary key, increment]
+  workSchedule integer [ref: > Organization.id, not null]
+  name         varchar(100) [not null]
+  day_type     choice("To'liq bayram", "Qisman ish kuni", "To'liq ish kuni")
+  day_date         date [not null]
+  from_hour    hour [not null]
+  to_hour      hour [not null]
+  is_active    boolean [default: true]
+  created_at   timestamp [default: `now()`]
+  updated_at   timestamp [default: `now()`]
+}
+
+Table RecruitmentDismissal {
+  type             choice ("Ishga olish | recruitment", "Ishdan chiqarish | dismissal")
+  branch_id        integer [ref: > Branch.id, not null]
+  employee         integer [ref: > Employee.id, not null]
+  position         integer [ref: > Position.id, not null]
+  branch           integer [ref: > Branch.id, not null]
+  card_number      varchar [not null]
+  card_image       varchar // bejik rasmi
+  salary_type      choice ("Belgilangan summa", "Savdodan foiz", "Asoschi") [not null]
+  fix_summa        float     [null]
+  fix_percent      float     [null]
+  rec_dism_date    date      [not null]
+  dismissal_reason text
+  extra_summa      float     [null]
+  extra_percent    float     [null]
+  id               integer   [primary key, increment]
+  is_active        boolean   [default: true]
+  created_at       timestamp [default: `now()`]
+  updated_at       timestamp [default: `now()`]
+}
+
+Table EmployeeLedger {
+  id              integer [primary key]      // uuid 16
+  branch_id       integer [ref: > Branch.id, not null]
+  employee        integer [ref: > Employee.id, not null]
+  type            choice  ("recruitment", "dismissal_work", "change_position")
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+
+}
+Table Currency {
+  id              integer [primary key]      // uuid 16
+  name            varchar // O'zbekiston so'mi
+  short_name      varchar // UZS
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+}
+
+Table CurrencyLedger { // o'zbek so'miga nisbatan qiymatlar saqlanadi.
+  id              integer [primary key]      // uuid 16
+  currency        integer [ref: > Currency.id, not null]
+  value           float   [default: 0.00]
+  day             timestamp [default: `now()`]
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+}
+
+Table AccrualRetention {
+  id              integer [primary key]      // uuid 16
+  name            varchar
+  type            choice ("percent", "fix_summa")
+  currency        integer [ref: > Currency.id, not null]
+  value           float   [default: 0.00] // if type == "percent": max(value) = 100.00 else min(value) = 0 | Hisob kitobda agar boshqa valyuta tanlangan bo'lsa, bu maydon qimayti oylik hisoblash paytida UZS ga joriy sanadagi kurs bilan almashtiriladi, ya'ni oylik UZSdan xisoblanadi.
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+}
+
+// Table Xodimlar keldi ketisi uchun hgt davomatga o'xshash struktura tuzilsin.
+
+Table CounterpartyType {
+  id              integer [primary key]      // uuid 16
+  name            varchar
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+}
+
+Table Counterparty {
+  id              integer [primary key]      // uuid 16
+  name            varchar
+  phone_number    varchar(50)
+  type            integer [ref: > CounterpartyType.id, not null]
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+}
+// -----------------------------------------------------------------------------
+// 2. MAHSULOTLAR VA KATALOG (PRODUCTS & CATALOG)
+// -----------------------------------------------------------------------------
+
+Table Quality {
+  id           integer [primary key, increment]
+  name         varchar(100) [not null]
+  description  text
+  is_active    boolean [default: true]
+  created_at   timestamp [default: `now()`]
+  updated_at   timestamp [default: `now()`]
+}
+
+Table Design {
+  id           integer [primary key, increment]
+  quality      integer [ref: > Quality.id, not null]
+  name         varchar(100) [not null]
+  description  text
+  is_active    boolean [default: true]
+  created_at   timestamp [default: `now()`]
+  updated_at   timestamp [default: `now()`]
+}
+
+Table DesignPhoto {
+  photo_path   sting   [not null]
+  id           integer [primary key, increment]
+  name         varchar(100) [not null]
+  description  text
+  is_active    boolean [default: true]
+  created_at   timestamp [default: `now()`]
+  updated_at   timestamp [default: `now()`]
+}
+
+Table ProductColor {
+  id           integer [primary key, increment]
+  name         varchar(100) [not null]
+  description  text    [null]
+  color_hex    string  [null]
+  is_active    boolean [default: true]
+  created_at   timestamp [default: `now()`]
+  updated_at   timestamp [default: `now()`]
+}
+
+Table Unit {
+  id           integer [primary key, increment]
+  name         varchar(100) [not null]
+  description  text    [null]
+  is_active    boolean [default: true]
+  created_at   timestamp [default: `now()`]
+  updated_at   timestamp [default: `now()`]
+}
+
+Table ProductParty {
+  id           integer [primary key, increment]
+  branch_id    integer [ref: > Branch.id, not null]
+  party_number string  // [OrganizationPerifix]-IN-00000015
+  name         varchar(100) [not null] // masalan: Eron gilamlari, Turtsiya, Mahalliy, Yo'laklar (Runners)
+  quality      integer [ref: > Quality.id, not null]
+  design       integer [ref: > Design.id, not null]
+  color        integer [ref: > ProductColor.id, not null]
+  unit         integer [ref: > Unit.id, not null]
+  description  text
+  barcode      varchar(100) [unique]
+  is_runner    boolean [default: false]
+  price_per_sqm_purchase decimal(15,2) [not null] // 1 kv.m uchun tannarx (kirish narxi)
+  price_per_sqm_sale decimal(15,2) [not null]
+  is_active    boolean [default: true]
+  created_at   timestamp [default: `now()`]
+  updated_at   timestamp [default: `now()`]
+}
+
+
+
+// -----------------------------------------------------------------------------
+// 3. OMBOR VA JISMÕNIY RULONLAR HISOBI (INVENTORY & SPECIFIC ROLLS)
+// -----------------------------------------------------------------------------
+
+Table Warehouse {
+  id integer [primary key, increment]
+  branch_id integer [ref: > Branch.id, not null]
+  name varchar(255) [not null] // masalan: Asosiy ombor, Vitrina/Shourum
+  address text
+  created_at timestamp [default: `now()`]
+}
+
+
+
+// Har bir rulonning alohida hisobi (Gilam yo'laklari uchun o'ta muhim)
+// Table CarpetRoll {
+//   id integer [primary key, increment]
+//   product_id integer [ref: > Product.id, not null]
+//   warehouse_id integer [ref: > Warehouse.id, not null]
+//   roll_number varchar(100) [not null] // Rulonning seriya raqami yoki shtrixkodi
+//   initial_length_meters decimal(8,2) [not null] // Rulonning asl boshlang'ich uzunligi (metr)
+//   current_length_meters decimal(8,2) [not null] // Hozirgi qolgan uzunligi (metr)
+//   is_offcut boolean [default: false] // Katta rulondan kesib olingan kichik qoldiq (qiyqim) bo'lakmi
+//   status varchar(50) [not null] // ACTIVE, SOLD_OUT (tugagan), DAMAGED (brak)
+//   created_at timestamp [default: `now()`]
+//   updated_at timestamp [default: `now()`]
+
+//   Indexes {
+//     (warehouse_id, product_id)
+//     (roll_number)
+//   }
+// }
+
+// Table ProductStock {
+//   id integer [primary key, increment]
+//   warehouse_id integer [ref: > Warehouse.id, not null]
+//   product_id integer [ref: > Product.id, not null]
+//   quantity integer [not null, default: 0] // Tayyor dona gilamlar soni
+//   total_length_meters decimal(10,2) [default: 0] // Yo'laklar (Runner) uchun barcha faol rulonlardagi jami metr uzunligi summasi
+//   created_at timestamp [default: `now()`]
+//   updated_at timestamp [default: `now()`]
+
+//   Indexes {
+//     (warehouse_id, product_id) [unique]
+//   }
+// }
+
+// // Ombor harakatlari auditi (Kirim, Chiqim, Peremeshcheniye)
+// Table StockTransaction {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   product_id integer [ref: > Product.id, not null]
+//   roll_id integer [ref: > CarpetRoll.id] // Agar yo'lak (runner) bo'lsa qaysi rulonda o'zgarish bo'ldi
+//   from_warehouse_id integer [ref: > Warehouse.id] // Kirim bo'lsa NULL
+//   to_warehouse_id integer [ref: > Warehouse.id] // Chiqim bo'lsa NULL
+//   transaction_type varchar(50) [not null] // IN (Kirim), OUT (Chiqim), TRANSFER (Ko'chirish)
+//   quantity integer [default: 0] // Dona gilamlar uchun
+//   length_meters decimal(10,2) [default: 0] // Yo'laklar metr uzunligi uchun
+//   ref_type varchar(50) // SALE (Sotuv), RETURN (Vozvrat), PURCHASE (Kirim), ADJUSTMENT (Korrektirovka), TRANSFER
+//   ref_id integer // Tegishli hujjat ID si (Order.id, Purchase.id yoki Return.id)
+//   created_at timestamp [default: `now()`]
+// }
+
+// // -----------------------------------------------------------------------------
+// // 4. SOTUV VA MIJOZLAR (SALES & CUSTOMERS)
+// // -----------------------------------------------------------------------------
+
+// Table Customer {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   full_name varchar(255) [not null]
+//   phone varchar(50) [not null]
+//   address text
+//   balance_debt decimal(15,2) [default: 0] // Mijozning nasiya balansi (ijobiy bo'lsa qarzdor)
+//   loyalty_discount_pct decimal(5,2) [default: 0] // Mijoz uchun individual doimiy chegirma foizi
+//   created_at timestamp [default: `now()`]
+//   updated_at timestamp [default: `now()`]
+
+//   Indexes {
+//     (organization_id, phone)
+//   }
+// }
+
+// Table Order {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   branch_id integer [ref: > Branch.id, not null]
+//   customer_id integer [ref: > Customer.id] // NULL bo'lishi mumkin (oddiy nomsiz xaridor)
+//   seller_id integer [ref: > User.id, not null] // Sotgan xodim (seller)
+//   cashier_id integer [ref: > User.id] // Pulni qabul qilgan kassir
+//   total_amount decimal(15,2) [not null] // Chegirmalarsiz jami summa
+//   discount_amount decimal(15,2) [default: 0] // Umumiy chegirma summasi
+//   final_amount decimal(15,2) [not null] // To'lanishi kerak bo'lgan yakuniy summa
+//   paid_amount decimal(15,2) [default: 0] // To'langan summa
+//   debt_amount decimal(15,2) [default: 0] // Nasiya qolgan summa
+//   payment_status varchar(50) [not null] // PAID, PARTIALLY_PAID, DEBT (Nasiya), UNPAID
+//   order_status varchar(50) [not null] // PENDING, COMPLETED, CANCELLED
+//   overlock_included boolean [default: false] // Tikish/ovirlok xizmati bormi
+//   delivery_required boolean [default: false]
+//   delivery_address text
+//   delivery_date timestamp
+//   created_at timestamp [default: `now()`]
+//   updated_at timestamp [default: `now()`]
+// }
+
+// Table OrderItem {
+//   id integer [primary key, increment]
+//   order_id integer [ref: > Order.id, not null]
+//   product_id integer [ref: > Product.id, not null]
+//   roll_id integer [ref: > CarpetRoll.id] // Agar kesilgan yo'lak bo'lsa qaysi jismoniy rulondan kesildi
+//   warehouse_id integer [ref: > Warehouse.id, not null] // Qaysi ombordan mahsulot kamaydi
+
+//   // Sotilgan o'lcham tafsilotlari (gilam sotuvining eng muhim qismi)
+//   width decimal(8,2) [not null] // sotilgan eni (metr)
+//   length decimal(8,2) [not null] // sotilgan bo'yi (metr, yo'lak bo'lsa kesib berilgan uzunlik)
+//   sqm decimal(10,2) [not null] // kvadrat metr (sqm = width * length)
+
+//   price_per_sqm decimal(15,2) [not null] // Sotilgan paytdagi 1 kv.m narxi
+//   item_subtotal decimal(15,2) [not null] // Jami summasi (sqm * price_per_sqm)
+
+//   // Ovirlok (chekka tikish) xizmati tafsilotlari
+//   overlock_length_meters decimal(8,2) [default: 0] // tikilgan cheti uzunligi (metrda)
+//   overlock_price_per_meter decimal(15,2) [default: 0]
+//   overlock_cost decimal(15,2) [default: 0] // jami ovirlok narxi
+
+//   quantity integer [default: 1] // Nechta dona (tayyor o'lchamli dona gilamlar uchun)
+//   final_item_price decimal(15,2) [not null] // (item_subtotal + overlock_cost) * quantity
+// }
+
+// // -----------------------------------------------------------------------------
+// // 5. TO'LOVLAR, NASIYA SHARTNOMALARI VA MUDDATLI TO'LOV GRAFIKLARI
+// // -----------------------------------------------------------------------------
+
+// Table Payment {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   order_id integer [ref: > Order.id] // Sotuv to'lovi bo'lsa bog'lanadi. Nasiya yopilganda NULL bo'lishi ham mumkin.
+//   installment_agreement_id integer // Muddatli to'lov shartnomasi bo'yicha to'lov bo'lsa bog'lanadi
+//   customer_id integer [ref: > Customer.id] // Nasiya yopilganda kim to'laganini bilish uchun
+//   amount decimal(15,2) [not null]
+//   payment_method varchar(50) [not null] // CASH (naqd), CARD (terminal), BANK_TRANSFER, CLICK, PAYME, APELSIN
+//   payment_type varchar(50) [not null] // ORDER_PAYMENT, DEBT_PAYMENT, DOWN_PAYMENT (boshlang'ich muddatli to'lov)
+//   created_at timestamp [default: `now()`]
+// }
+
+// // Nasiya daftari (Qarzlarni monitoring qilish uchun umumiy jadval)
+// Table DebtLedger {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   customer_id integer [ref: > Customer.id, not null]
+//   order_id integer [ref: > Order.id, not null]
+//   total_debt decimal(15,2) [not null] // Jami qarz summasi
+//   remaining_debt decimal(15,2) [not null] // Qolgan qarz summasi
+//   due_date timestamp // To'lash oxirgi muddati
+//   status varchar(50) [not null] // ACTIVE, PAID, OVERDUE (muddati o'tgan)
+//   created_at timestamp [default: `now()`]
+//   updated_at timestamp [default: `now()`]
+// }
+
+// // Muddatli to'lov (Installment/Rassrochka) shartnomalari
+// Table InstallmentAgreement {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   order_id integer [ref: > Order.id, unique, not null]
+//   customer_id integer [ref: > Customer.id, not null]
+//   agreement_number varchar(100) [unique, not null] // Shartnoma raqami
+//   total_amount decimal(15,2) [not null] // Shartnomaning jami summasi (ustamalari bilan)
+//   down_payment decimal(15,2) [not null] // Boshlang'ich to'lov
+//   remaining_amount decimal(15,2) [not null] // Qolgan muddatli to'lanadigan summa
+//   number_of_months integer [not null] // Necha oyga bo'lingan (masalan: 3, 6, 12 oy)
+//   markup_pct decimal(5,2) [default: 0] // Ustama foizi (rassrochka ustamasi)
+//   status varchar(50) [not null] // ACTIVE, CLOSED (tugatilgan), OVERDUE (kechikayotgan)
+//   created_at timestamp [default: `now()`]
+//   updated_at timestamp [default: `now()`]
+// }
+
+// // Muddatli to'lov shartnomasi bo'yicha oylik to'lov grafiklari
+// Table InstallmentSchedule {
+//   id integer [primary key, increment]
+//   agreement_id integer [ref: > InstallmentAgreement.id, not null]
+//   payment_number integer [not null] // Nechinchi oylik to'lov (masalan: 1, 2, 3...)
+//   due_date date [not null] // To'lov muddati (sana)
+//   amount_to_pay decimal(15,2) [not null] // To'lanishi kerak bo'lgan oylik qism
+//   paid_amount decimal(15,2) [default: 0] // Haqiqatda to'langan qism
+//   status varchar(50) [not null] // PENDING, PAID, PARTIALLY_PAID, OVERDUE
+//   updated_at timestamp [default: `now()`]
+// }
+
+// // -----------------------------------------------------------------------------
+// // 6. TA'MINOT VA XARAJATLAR (SUPPLY & EXPENSES)
+// // -----------------------------------------------------------------------------
+
+// Table Supplier {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   name varchar(255) [not null] // Ta'minotchi zavod yoki diler (masalan: Urgut Fabrika, Eron Optom)
+//   phone varchar(50)
+//   address text
+//   balance_debt decimal(15,2) [default: 0] // Bizning ta'minotchidan qarzimiz (ijobiy bo'lsa biz qarzmiz)
+//   created_at timestamp [default: `now()`]
+//   updated_at timestamp [default: `now()`]
+// }
+
+// // Ta'minotchidan omborga mahsulot kirimi
+// Table SupplierPurchase {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   supplier_id integer [ref: > Supplier.id, not null]
+//   warehouse_id integer [ref: > Warehouse.id, not null] // Qaysi omborga kirim qilindi
+//   total_amount decimal(15,2) [not null]
+//   paid_amount decimal(15,2) [default: 0]
+//   debt_amount decimal(15,2) [default: 0]
+//   created_at timestamp [default: `now()`]
+// }
+
+// Table SupplierPurchaseItem {
+//   id integer [primary key, increment]
+//   purchase_id integer [ref: > SupplierPurchase.id, not null]
+//   product_id integer [ref: > Product.id, not null]
+//   roll_number varchar(100) // Agar kirim qilingan yo'lak bo'lsa rulonning unikal raqami
+//   width decimal(8,2) [not null]
+//   length decimal(8,2) // Runner uchun NULL bo'lishi mumkin (faqat eni kelganda)
+//   quantity integer [default: 1] // Agar dona gilam bo'lsa
+//   total_length_meters decimal(10,2) // Agar yo'lak (runner) bo'lsa rulon uzunligi
+//   price_per_sqm decimal(15,2) [not null] // Sotib olingan narxi (1 kv.m uchun tannarxi)
+//   subtotal decimal(15,2) [not null]
+// }
+
+// // Filial yoki umumiy xarajatlar daftari
+// Table Expense {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   branch_id integer [ref: > Branch.id] // NULL bo'lsa butun tashkilot uchun umumiy xarajat
+//   category varchar(100) [not null] // RENT (ijara), SALARY (oylik), UTILITIES (kommunal), TRANSPORT, ADVERTISEMENT, OTHER
+//   amount decimal(15,2) [not null]
+//   description text
+//   created_at timestamp [default: `now()`]
+// }
+
+// // -----------------------------------------------------------------------------
+// // 7. TOVAR QAYTARISH, KPI (COMMISSIONS) VA XAVFSIZLIK (AUDIT)
+// // -----------------------------------------------------------------------------
+
+// // Tovar qaytarib olish (Vozvrat) jurnali
+// Table ReturnOrder {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   branch_id integer [ref: > Branch.id, not null]
+//   order_id integer [ref: > Order.id, not null] // Qaysi sotuv cheki bo'yicha qaytarildi
+//   customer_id integer [ref: > Customer.id]
+//   refund_amount decimal(15,2) [not null] // Mijozga qaytarilgan summa
+//   reason text
+//   created_at timestamp [default: `now()`]
+// }
+
+// Table ReturnItem {
+//   id integer [primary key, increment]
+//   return_id integer [ref: > ReturnOrder.id, not null]
+//   order_item_id integer [ref: > OrderItem.id, not null]
+//   quantity integer [default: 1] // Dona gilamlar uchun
+//   length_meters decimal(10,2) [default: 0] // Yo'laklar uchun qaytarilgan metr uzunligi
+//   restock_status varchar(50) [not null] // RESTOCKED (omborda yana sotuvga qo'yildi), DAMAGED_SCRAP (brak deb hisobdan o'chirildi)
+// }
+
+// // Sotuvchilarning KPI / Sotuvdan oladigan ulush (Foiz yoki kvadrat metrdan bonus) hisobi
+// Table EmployeeCommission {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   user_id integer [ref: > User.id, not null] // Sotuvchi xodim
+//   order_id integer [ref: > Order.id, not null]
+//   order_item_id integer [ref: > OrderItem.id, not null]
+//   commission_percentage decimal(5,2) // Agar sotuv summasidan foiz berilsa
+//   commission_amount decimal(15,2) [not null] // Sotuvchiga yozilgan jami bonus summasi
+//   payment_status varchar(50) [not null] // PENDING (to'lanmagan), PAID (oylikka qo'shib to'langan)
+//   created_at timestamp [default: `now()`]
+//   paid_at timestamp
+// }
+
+// // Tizim xavfsizlik loglari (Audit log - kim nima qildi)
+// Table AuditLog {
+//   id integer [primary key, increment]
+//   organization_id integer [ref: > Organization.id, not null]
+//   user_id integer [ref: > User.id] // NULL bo'lsa tizim tomonidan avtomatik
+//   action varchar(100) [not null] // masalan: UPDATE_PRICE, DELETE_ORDER, RESTORE_STOCK
+//   table_name varchar(100) [not null]
+//   row_id integer [not null]
+//   old_values jsonb // O'zgartirishdan oldingi holat (JSON formatda)
+//   new_values jsonb // O'zgartirishdan keyingi holat (JSON formatda)
+//   ip_address varchar(45)
+//   created_at timestamp [default: `now()`]
+// }
+

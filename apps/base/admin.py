@@ -8,8 +8,10 @@ va hard-delete operatsiyalarini qo'llab-quvvatlaydigan BaseModelAdmin klassini t
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
+from .exports import ExportExcelMixin
 
-class BaseModelAdmin(ModelAdmin):
+
+class BaseModelAdmin(ExportExcelMixin, ModelAdmin):
     """
     Loyihadagi barcha modellar uchun admin paneli bazaviy klassi.
 
@@ -43,5 +45,3 @@ class BaseModelAdmin(ModelAdmin):
             request,
             f"Muvaffaqiyatli: {count} ta obyekt bazadan butunlay o'chirib yuborildi.",
         )
-
-

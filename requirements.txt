@@ -37,3 +37,5 @@ requests==2.34.2
 aiogram==3.30.0
 gunicorn==23.0.0
 
+# Excel eksport (apps/base/exports.py)
+openpyxl==3.1.5
