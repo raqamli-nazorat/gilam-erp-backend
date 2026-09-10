@@ -6,8 +6,9 @@ tekshiruvchi validatorlarni o'z ichiga oladi.
 """
 
 import re
-from django.core.validators import RegexValidator
+
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.utils.deconstruct import deconstructible
 
 # O'zbekiston telefon raqamlari formati uchun validator (+998XXXXXXXXX)
@@ -101,4 +102,3 @@ class FileSizeValidator:
         return (
             isinstance(other, self.__class__) and self.max_size_mb == other.max_size_mb
         )
-

@@ -76,7 +76,11 @@ class BaseModelSerializer(serializers.ModelSerializer):
             except (AttributeError, Exception):
                 pass
 
-            if is_many and hasattr(related_model, "objects") and hasattr(related_model.objects, "active"):
+            if (
+                is_many
+                and hasattr(related_model, "objects")
+                and hasattr(related_model.objects, "active")
+            ):
                 if not (isinstance(val, dict) and "source" in val):
                     source = f"{source}.active"
 

@@ -5,8 +5,7 @@ Ushbu modul BaseModel'dan meros olgan modellarni avtomatik
 auditlog reyestridan o'tkazishni ta'minlaydi.
 """
 
-from django.apps import AppConfig
-from django.apps import apps
+from django.apps import AppConfig, apps
 from django.db.models.signals import class_prepared
 
 
@@ -19,6 +18,7 @@ def register_auditlog(sender, **kwargs):
         sender (type[Model]): Tayyor bo'lgan Django modeli klassi.
     """
     from auditlog.registry import auditlog
+
     from apps.base.models import BaseModel
 
     if issubclass(sender, BaseModel) and not sender._meta.abstract:
@@ -42,6 +42,7 @@ class BaseConfig(AppConfig):
         class_prepared.connect(register_auditlog)
 
         from auditlog.registry import auditlog
+
         from apps.base.models import BaseModel
 
         for model in apps.get_models():
@@ -50,4 +51,3 @@ class BaseConfig(AppConfig):
                     auditlog.register(model)
                 except Exception:
                     pass
-
