@@ -6,9 +6,10 @@ standart CRUD va ReadOnly ViewSet klasslarini taqdim etadi.
 """
 
 from rest_framework import viewsets
+
 from apps.base.mixins import (
-    DynamicPermissionMixin,
     AutoSchemaMixin,
+    DynamicPermissionMixin,
 )
 
 
@@ -17,8 +18,6 @@ class BaseManageViewSet(AutoSchemaMixin, DynamicPermissionMixin, viewsets.ModelV
     To'liq CRUD (Create, Read, Update, Delete) operatsiyalari uchun bazaviy ViewSet.
     """
 
-    pass
-
 
 class BaseReadOnlyViewSet(
     AutoSchemaMixin, DynamicPermissionMixin, viewsets.ReadOnlyModelViewSet
@@ -26,6 +25,3 @@ class BaseReadOnlyViewSet(
     """
     Faqat o'qish (List, Retrieve) operatsiyalari uchun bazaviy ViewSet.
     """
-
-    pass
-

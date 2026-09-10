@@ -170,4 +170,3 @@ class ThrottleExceptionHandlerMixin:
             logger.warning("attempts_left hisoblashda xatolik", exc_info=True)
 
         return None
-

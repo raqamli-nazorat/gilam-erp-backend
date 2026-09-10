@@ -5,14 +5,14 @@ Faqat o'qish rejimidagi ushbu ViewSet tizim audit loglarini filterlash,
 qidirish va tartiblash imkonini beradi.
 """
 
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
 from auditlog.models import LogEntry
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter, SearchFilter
 
 from apps.base.views import BaseReadOnlyViewSet
 
-from .serializers import LogEntrySerializer
 from .filters import LogEntryFilter
+from .serializers import LogEntrySerializer
 
 
 class LogEntryViewSet(BaseReadOnlyViewSet):
@@ -27,4 +27,3 @@ class LogEntryViewSet(BaseReadOnlyViewSet):
     search_fields = ["object_repr", "changes", "actor__full_name", "remote_addr"]
     ordering_fields = ["timestamp", "action"]
     ordering = ["-timestamp"]
-

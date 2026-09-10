@@ -53,5 +53,3 @@ class IsOwnerOrStaff(permissions.BasePermission):
             return obj.user == request.user
 
         return obj == request.user
-
-

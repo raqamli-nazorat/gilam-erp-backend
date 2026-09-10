@@ -5,13 +5,18 @@ from django.contrib.auth.models import (
 )
 from django.db import models
 
-from apps.base.models import BaseModel
+from apps.base.models import BaseModel, BaseQuerySet
 
 from .role import Role
 
 
-class UserManager(BaseUserManager):
-    """User modeli uchun maxsus manager."""
+class UserManager(BaseUserManager.from_queryset(BaseQuerySet)):
+    """
+    User modeli uchun maxsus manager.
+
+    `BaseQuerySet` dan `active()` / `inactive()` va soft-delete metodlarini,
+    `BaseUserManager` dan `create_user` / `create_superuser` ni meros oladi.
+    """
 
     use_in_migrations = True
 

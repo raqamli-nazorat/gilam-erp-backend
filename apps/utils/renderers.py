@@ -144,4 +144,3 @@ class ResponseRenderer(JSONRenderer):
             return DEFAULT_SERVER_MSG, None
 
         return DEFAULT_ERROR_MSG, None
-
