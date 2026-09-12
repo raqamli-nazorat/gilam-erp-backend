@@ -1,0 +1,904 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Gilam ERP API Qo'llanma</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#f6f5f0;
+  --surface:#ffffff;
+  --surface-2:#eeece3;
+  --border:#e0ddd0;
+  --ink:#221f1a;
+  --ink-muted:#6e6a5c;
+  --accent:#2b4c7e;
+  --accent-ink:#ffffff;
+  --accent-soft:#e6ecf5;
+  --code-bg:#1c2530;
+  --code-ink:#e7ecf3;
+  --code-muted:#8fa1b8;
+  --get:#1c7a68;
+  --post:#3a7a3a;
+  --put:#a66a1e;
+  --delete:#b33a3a;
+  --get-soft:#e2f2ee;
+  --post-soft:#e6f2e2;
+  --put-soft:#f6ead7;
+  --delete-soft:#f8e3e0;
+  --shadow:0 1px 2px rgba(30,26,16,.06),0 6px 20px -8px rgba(30,26,16,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15130f;
+    --surface:#1c1a14;
+    --surface-2:#242119;
+    --border:#39352a;
+    --ink:#f0ede4;
+    --ink-muted:#a89f8c;
+    --accent:#8fb0dd;
+    --accent-ink:#101a29;
+    --accent-soft:rgba(143,176,221,.14);
+    --code-bg:#0f151d;
+    --code-ink:#dbe4ef;
+    --code-muted:#7690a8;
+    --get:#4fc9ae;
+    --post:#8ed88e;
+    --put:#e6ac52;
+    --delete:#e78585;
+    --get-soft:rgba(79,201,174,.12);
+    --post-soft:rgba(142,216,142,.12);
+    --put-soft:rgba(230,172,82,.12);
+    --delete-soft:rgba(231,133,133,.12);
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -10px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15130f;
+  --surface:#1c1a14;
+  --surface-2:#242119;
+  --border:#39352a;
+  --ink:#f0ede4;
+  --ink-muted:#a89f8c;
+  --accent:#8fb0dd;
+  --accent-ink:#101a29;
+  --accent-soft:rgba(143,176,221,.14);
+  --code-bg:#0f151d;
+  --code-ink:#dbe4ef;
+  --code-muted:#7690a8;
+  --get:#4fc9ae;
+  --post:#8ed88e;
+  --put:#e6ac52;
+  --delete:#e78585;
+  --get-soft:rgba(79,201,174,.12);
+  --post-soft:rgba(142,216,142,.12);
+  --put-soft:rgba(230,172,82,.12);
+  --delete-soft:rgba(231,133,133,.12);
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -10px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.55;
+  padding:0 20px;
+}
+h1,h2,h3{font-family:'Sora',system-ui,sans-serif;text-wrap:balance;color:var(--ink);}
+code,pre,.mono{font-family:'IBM Plex Mono','SFMono-Regular',monospace;}
+a{color:var(--accent);}
+p{max-width:68ch;color:var(--ink);}
+
+.wrap{max-width:1180px;margin:0 auto;}
+
+/* ---------- header ---------- */
+.hero{
+  padding:40px 0 28px;
+  border-bottom:1px solid var(--border);
+}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin:0 0 10px;
+}
+.hero h1{font-size:clamp(26px,4vw,36px);margin:0 0 8px;font-weight:700;}
+.hero p{font-size:15.5px;color:var(--ink-muted);margin:0 0 18px;max-width:62ch;}
+.hero-meta{display:flex;gap:10px;flex-wrap:wrap;}
+.tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--ink-muted);
+  padding:5px 10px;
+  border-radius:6px;
+}
+.tag b{color:var(--ink);font-weight:600;}
+
+/* ---------- layout ---------- */
+.layout{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:36px;
+  padding:28px 0 80px;
+  align-items:start;
+}
+.side{
+  position:sticky;
+  top:20px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  max-height:calc(100vh - 40px);
+  overflow-y:auto;
+  padding-right:6px;
+}
+.side-group-h{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  color:var(--ink-muted);
+  margin-bottom:6px;
+}
+.side-link{
+  display:block;
+  padding:5px 0;
+  font-size:13.5px;
+  color:var(--ink-muted);
+  text-decoration:none;
+  border-left:2px solid transparent;
+  padding-left:10px;
+  margin-left:-1px;
+}
+.side-link:hover{color:var(--ink);}
+.side-link.active{color:var(--accent);border-left-color:var(--accent);font-weight:500;}
+
+main{min-width:0;}
+section{margin-bottom:56px;scroll-margin-top:20px;}
+.section-h{
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  margin-bottom:6px;
+}
+.section-h h2{font-size:22px;margin:0;}
+.section-h .count{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-muted);}
+.section-intro{color:var(--ink-muted);margin:0 0 22px;font-size:14.5px;}
+
+/* ---------- generic content blocks ---------- */
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:20px 22px;
+  margin-bottom:16px;
+  box-shadow:var(--shadow);
+}
+.panel h3{font-size:15px;margin:0 0 8px;}
+.panel p{font-size:14px;color:var(--ink-muted);margin:0 0 8px;}
+.panel p:last-child{margin-bottom:0;}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;}
+th{
+  text-align:left;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--ink-muted);
+  padding:0 10px 8px 0;
+  border-bottom:1px solid var(--border);
+  font-weight:500;
+}
+td{
+  padding:8px 10px 8px 0;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+  color:var(--ink);
+}
+tr:last-child td{border-bottom:none;}
+.table-wrap{overflow-x:auto;}
+td .mono, th .mono{font-size:12.5px;}
+.req-yes{color:var(--delete);font-weight:600;}
+.req-no{color:var(--ink-muted);}
+
+.method{
+  display:inline-block;
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:600;
+  font-size:11.5px;
+  letter-spacing:.03em;
+  padding:2px 7px;
+  border-radius:5px;
+  white-space:nowrap;
+}
+.m-get{background:var(--get-soft);color:var(--get);}
+.m-post{background:var(--post-soft);color:var(--post);}
+.m-put{background:var(--put-soft);color:var(--put);}
+.m-delete{background:var(--delete-soft);color:var(--delete);}
+
+.path{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);}
+.perm{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-muted);}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px;}
+.chip{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  padding:3px 8px;
+  border-radius:20px;
+}
+
+.note{
+  font-size:13px;
+  color:var(--ink-muted);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 12px;
+  margin:10px 0;
+}
+.note b{color:var(--ink);}
+.note.warn{border-color:color-mix(in srgb, var(--put) 40%, var(--border));}
+.note.warn b{color:var(--put);}
+
+/* ---------- resource card ---------- */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:22px 24px 24px;
+  margin-bottom:22px;
+  scroll-margin-top:20px;
+  box-shadow:var(--shadow);
+}
+.card-h{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:4px;
+}
+.card-h h3{font-size:17px;margin:0;}
+.card-base{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-muted);margin:0 0 14px;}
+.card-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.badge-note{
+  font-size:11.5px;
+  font-family:'IBM Plex Mono',monospace;
+  padding:3px 8px;
+  border-radius:20px;
+  background:var(--surface-2);
+  color:var(--ink-muted);
+  border:1px solid var(--border);
+}
+
+.sub-h{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:var(--ink-muted);
+  margin:18px 0 8px;
+}
+.sub-h:first-of-type{margin-top:14px;}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+.codeblock{position:relative;}
+pre{
+  background:var(--code-bg);
+  color:var(--code-ink);
+  border-radius:8px;
+  padding:14px 16px;
+  overflow-x:auto;
+  font-size:12.5px;
+  line-height:1.6;
+  margin:0;
+}
+pre .k{color:var(--code-muted);}
+.copy-btn{
+  position:absolute;top:8px;right:8px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  background:rgba(255,255,255,.08);
+  color:var(--code-ink);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:5px;
+  padding:3px 7px;
+  cursor:pointer;
+}
+.copy-btn:hover{background:rgba(255,255,255,.16);}
+
+footer{
+  border-top:1px solid var(--border);
+  padding:22px 0 60px;
+  color:var(--ink-muted);
+  font-size:12.5px;
+}
+
+/* ---------- mobile ---------- */
+@media (max-width:900px){
+  body{padding:0 14px;}
+  .layout{grid-template-columns:1fr;gap:18px;padding-top:18px;}
+  .side{
+    position:static;
+    max-height:none;
+    flex-direction:row;
+    flex-wrap:wrap;
+    gap:8px 6px;
+    overflow-y:visible;
+    padding-right:0;
+  }
+  .side-group-h{display:none;}
+  .side-link{
+    border:1px solid var(--border);
+    border-left:1px solid var(--border);
+    border-radius:20px;
+    padding:5px 11px;
+    margin-left:0;
+    background:var(--surface);
+  }
+  .side-link.active{background:var(--accent-soft);border-color:var(--accent);}
+  .grid-2{grid-template-columns:1fr;}
+}
+</style>
+
+<div class="wrap">
+
+  <div class="hero">
+    <p class="eyebrow">Ichki hujjat &middot; Backend &rarr; Frontend / Moliya</p>
+    <h1>Gilam ERP &mdash; API qo'llanma</h1>
+    <p>Gilam sotuvi savdo markazlari uchun ERP tizimining barcha tayyor API endpointlari: nima uchun, qanday so'rov, qanday javob. Har bir bo'lim mustaqil o'qiladi &mdash; kerakli joyga chapdagi ro'yxatdan o'ting.</p>
+    <div class="hero-meta">
+      <span class="tag">Base URL &middot; <b>/api/v1/</b></span>
+      <span class="tag">Format &middot; <b>JSON</b></span>
+      <span class="tag">Auth &middot; <b>JWT (Bearer)</b></span>
+      <span class="tag">Til &middot; <b>uz</b></span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <nav class="side" id="side"></nav>
+    <main id="main">
+
+      <!-- ============ KIRISH ============ -->
+      <section id="kirish">
+        <div class="section-h"><h2>Kirish</h2></div>
+        <p class="section-intro">Quyidagilar barcha endpointlarga baravar tegishli qoidalar &mdash; har bir endpoint tavsifida qaytarilmaydi.</p>
+
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Javob konverti</h3>
+            <p>Har bir javob (xato bo'lsa ham) bitta umumiy o'ramda keladi. Pastdagi barcha "Javob" namunalari <span class="mono">data</span> maydonining <b>ichini</b> ko'rsatadi.</p>
+            <div class="codeblock">
+              <pre id="envelope-code"></pre>
+              <button class="copy-btn" data-target="envelope-code">nusxa</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Autentifikatsiya</h3>
+            <p>Login'dan olingan <span class="mono">access</span> tokenni har so'rovga header sifatida qo'shing:</p>
+            <div class="codeblock">
+              <pre id="auth-header-code"></pre>
+              <button class="copy-btn" data-target="auth-header-code">nusxa</button>
+            </div>
+            <p>Access &mdash; 1 kun, refresh &mdash; 30 kun amal qiladi. Muddati tugasa <span class="mono">/auth/token/refresh/</span> orqali yangilanadi.</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Sahifalash (pagination)</h3>
+            <p>Ro'yxat (<span class="mono">GET</span> list) endpointlari <span class="mono">?page=</span> parametrini qabul qiladi, sahifa hajmi qat'iy &mdash; <b>20 ta</b>. Javob shakli:</p>
+            <div class="codeblock">
+              <pre id="page-code"></pre>
+              <button class="copy-btn" data-target="page-code">nusxa</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Ruxsatlar (permissions)</h3>
+            <p>Har resurs uchun Django permission talab qilinadi &mdash; <span class="mono">GET</span> uchun ham (odatiy DRF'dan farqli). Format: <span class="mono">&lt;app&gt;.view_&lt;model&gt;</span> / <span class="mono">add_</span> / <span class="mono">change_</span> / <span class="mono">delete_</span>.</p>
+            <p>Ruxsat yo'q foydalanuvchiga <span class="mono">403</span>, token yo'q/yaroqsiz bo'lsa <span class="mono">401</span> qaytadi.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Filter &middot; qidiruv &middot; tartiblash &middot; soft-delete</h3>
+          <p><span class="mono">?search=</span> &mdash; resursga xos matn maydonlarida (F.I.Sh., nomi va h.k.) qidiradi. <span class="mono">?ordering=maydon</span> yoki <span class="mono">?ordering=-maydon</span> &mdash; kamayish uchun oldiga <span class="mono">-</span>. UUID/raqam filterlar vergul bilan bir nechta qiymatni qabul qiladi: <span class="mono">?region=uuid1,uuid2</span>.</p>
+          <p><b>Soft-delete:</b> <span class="mono">DELETE</span> obyektni bazadan o'chirmaydi &mdash; <span class="mono">is_active=false</span> qiladi. <b>Rollar, foydalanuvchilar, davlat/viloyat/tuman</b> uchun o'chirilgan obyekt ro'yxat va retrieve'dan butunlay yo'qoladi (404). <b>Tashkilot, filial, katalog (sifat/birlik/rang), moliya (kontragent turi) va HR (lavozim)</b> uchun esa aksincha &mdash; o'chirilgandan keyin ham ro'yxatda <span class="mono">status: false</span> bilan ko'rinishda qoladi (kerak bo'lsa <span class="mono">?status=true</span> bilan filtrlang).</p>
+        </div>
+
+        <div class="panel">
+          <h3>Xatolik kodlari (umumiy)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Holat</th><th>Qachon</th><th>errorCode</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">400</td><td>Yuborilgan ma'lumot validatsiyadan o'tmadi &mdash; <span class="mono">error.details</span> ichida maydon nomi bo'yicha xabarlar</td><td class="mono">invalid / bad_request</td></tr>
+                <tr><td class="mono">401</td><td>Token yo'q, yaroqsiz yoki muddati tugagan</td><td class="mono">not_authenticated / token_not_valid</td></tr>
+                <tr><td class="mono">403</td><td>Token to'g'ri, lekin shu amal uchun Django permission yo'q</td><td class="mono">permission_denied</td></tr>
+                <tr><td class="mono">404</td><td>Obyekt topilmadi (yoki soft-delete qilingan &amp; ro'yxatdan chiqarib yuboriladigan turdagi resurs)</td><td class="mono">not_found</td></tr>
+                <tr><td class="mono">429</td><td>So'rovlar chegarasi oshdi (throttle) &mdash; anon/user uchun <b>60/daqiqa</b>, login uchun <b>5/15 daqiqa</b></td><td class="mono">throttled</td></tr>
+                <tr><td class="mono">500</td><td>Kutilmagan server xatosi</td><td class="mono">server_error</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:10px;">Namuna (400):</p>
+          <div class="codeblock">
+            <pre id="err400-code"></pre>
+            <button class="copy-btn" data-target="err400-code">nusxa</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TEXNIK HAVOLALAR ============ -->
+      <section id="texnik">
+        <div class="section-h"><h2>Texnik va admin havolalar</h2></div>
+        <p class="section-intro">API bo'lmagan, lekin loyihaning tayanch sahifalari.</p>
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Yo'l</th><th>Nima uchun</th></tr></thead>
+              <tbody>
+                <tr><td class="path">/admin/</td><td>Django admin panel (<span class="mono">django-unfold</span>) &mdash; <span class="mono">is_staff=true</span> foydalanuvchi kiradi, ma'lumotlarni qo'lda ko'rish/tahrirlash uchun</td></tr>
+                <tr><td class="path">/api/v1/</td><td>Barcha REST API endpointlarining bazaviy manzili</td></tr>
+                <tr><td class="path">/api/schema/</td><td>OpenAPI 3 sxema fayli (JSON/YAML, drf-spectacular) &mdash; kod generatorlar uchun</td></tr>
+                <tr><td class="path">/api/docs/</td><td>Swagger UI &mdash; endpointlarni brauzerda sinab ko'rish</td></tr>
+                <tr><td class="path">/api/redoc/</td><td>ReDoc &mdash; sxemani o'qish uchun qulay statik hujjat ko'rinishi</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note">Rollar va Foydalanuvchilar endpointlari hozircha Swagger/ReDoc'dan yashirilgan (API barqarorlashguncha), lekin ishlaydi &mdash; ular shu hujjatda pastda to'liq yozilgan.</div>
+        </div>
+      </section>
+
+      <!-- ============ AUTH ============ -->
+      <section id="auth">
+        <div class="section-h"><h2>Auth</h2><span class="count">2 endpoint</span></div>
+        <p class="section-intro">Login va tokenni yangilash. Resurs emas &mdash; CRUD'dan ajratilgan, ochiq (token talab qilmaydi).</p>
+
+        <div class="card" id="auth-login">
+          <div class="card-h"><h3>Tizimga kirish</h3><span class="method m-post">POST</span></div>
+          <p class="card-base">/api/v1/auth/login/</p>
+          <p>Telefon raqami va parol bilan kiradi, <span class="mono">access</span>/<span class="mono">refresh</span> token va joriy foydalanuvchi ma'lumotini qaytaradi. Nofaol (<span class="mono">is_active=false</span>) foydalanuvchi rad etiladi.</p>
+          <div class="note warn"><b>Throttle:</b> IP + telefon raqami bo'yicha 5 ta urinish / 15 daqiqa. Chegaradan oshsa <span class="mono">429</span> va javobda <span class="mono">attempts_left</span>, <span class="mono">retry_after_seconds</span> qaytadi.</div>
+          <div class="sub-h">So'rov tanasi</div>
+          <div class="codeblock"><pre id="login-req"></pre><button class="copy-btn" data-target="login-req">nusxa</button></div>
+          <div class="sub-h">Javob &middot; 200</div>
+          <div class="codeblock"><pre id="login-res"></pre><button class="copy-btn" data-target="login-res">nusxa</button></div>
+          <div class="note">Muvaffaqiyatsiz login &rarr; <span class="mono">401</span> ("Berilgan ma'lumotlar bilan faol hisob topilmadi").</div>
+        </div>
+
+        <div class="card" id="auth-refresh">
+          <div class="card-h"><h3>Access tokenni yangilash</h3><span class="method m-post">POST</span></div>
+          <p class="card-base">/api/v1/auth/token/refresh/</p>
+          <p>Amaldagi <span class="mono">refresh</span> token orqali yangi <span class="mono">access</span> token oladi (foydalanuvchini qayta login qildirmasdan).</p>
+          <div class="sub-h">So'rov tanasi</div>
+          <div class="codeblock"><pre id="refresh-req"></pre><button class="copy-btn" data-target="refresh-req">nusxa</button></div>
+          <div class="sub-h">Javob &middot; 200</div>
+          <div class="codeblock"><pre id="refresh-res"></pre><button class="copy-btn" data-target="refresh-res">nusxa</button></div>
+          <div class="note"><span class="mono">refresh</span> yaroqsiz/muddati tugagan bo'lsa &rarr; <span class="mono">401</span>.</div>
+        </div>
+      </section>
+
+      <!-- ============ ACCOUNTS ============ -->
+      <section id="accounts">
+        <div class="section-h"><h2>Accounts</h2><span class="count">2 resurs</span></div>
+        <p class="section-intro">Foydalanuvchi va rol boshqaruvi. To'liq CRUD (5 amal): ro'yxat, yaratish, bitta obyekt, yangilash, o'chirish.</p>
+        <div id="accounts-resources"></div>
+      </section>
+
+      <!-- ============ ORGANIZATION ============ -->
+      <section id="organization">
+        <div class="section-h"><h2>Tashkilot (Organization)</h2><span class="count">5 resurs</span></div>
+        <p class="section-intro">Geografik ma'lumotnomalar (davlat &rarr; viloyat &rarr; tuman) va ular ustiga qurilgan tashkilot/filial ierarxiyasi.</p>
+        <div id="org-resources"></div>
+      </section>
+
+      <!-- ============ CATALOG ============ -->
+      <section id="catalog">
+        <div class="section-h"><h2>Katalog (Catalog)</h2><span class="count">3 resurs</span></div>
+        <p class="section-intro">Mahsulot ma'lumotnomalari &mdash; sifat, o'lchov birligi, rang. <span class="mono">Dizayn</span> va <span class="mono">Mahsulot partiyasi</span> modellari mavjud, lekin hali ViewSet/serializer yo'q &mdash; API'da ko'rinmaydi.</p>
+        <div id="catalog-resources"></div>
+      </section>
+
+      <!-- ============ FINANCE ============ -->
+      <section id="finance">
+        <div class="section-h"><h2>Moliya (Finance)</h2><span class="count">1 resurs</span></div>
+        <p class="section-intro">Moliyaviy ma'lumotnomalar. Hozircha faqat kontragent turi chiqarilgan &mdash; <span class="mono">Valyuta</span>, <span class="mono">Kontragent</span>, <span class="mono">Hisoblash/ushlab qolish</span> hali API'da yo'q.</p>
+        <div id="finance-resources"></div>
+      </section>
+
+      <!-- ============ HR ============ -->
+      <section id="hr">
+        <div class="section-h"><h2>HR</h2><span class="count">1 resurs</span></div>
+        <p class="section-intro">Xodimlar bo'yicha ma'lumotnoma. Hozircha faqat lavozim chiqarilgan.</p>
+        <div id="hr-resources"></div>
+      </section>
+
+      <!-- ============ AUDITS ============ -->
+      <section id="audits">
+        <div class="section-h"><h2>Audit</h2><span class="count">1 resurs</span></div>
+        <p class="section-intro">Tizimdagi barcha <span class="mono">BaseModel</span> obyektlari (User dan tashqari barcha domen modellar) ustidagi yaratish/o'zgartirish/o'chirish amallari avtomatik shu jurnalga yoziladi (<span class="mono">django-auditlog</span>). Faqat o'qish uchun.</p>
+
+        <div class="card" id="audit-logs">
+          <div class="card-h"><h3>Loglar</h3></div>
+          <p class="card-base">/api/v1/audits/logs/</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Metod</th><th>Yo'l</th><th>Tavsif</th><th>Ruxsat</th></tr></thead>
+              <tbody>
+                <tr><td><span class="method m-get">GET</span></td><td class="path">/audits/logs/</td><td>Loglar ro'yxati (sahifalangan)</td><td class="perm">auditlog.view_logentry</td></tr>
+                <tr><td><span class="method m-get">GET</span></td><td class="path">/audits/logs/{id}/</td><td>Bitta log yozuvi</td><td class="perm">auditlog.view_logentry</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="sub-h">Query parametrlar</div>
+          <div class="chips">
+            <span class="chip">?search= &rarr; object_repr, changes, actor.full_name, remote_addr</span>
+            <span class="chip">?ordering=timestamp | action</span>
+            <span class="chip">?actor=uuid1,uuid2</span>
+            <span class="chip">?content_type=1,2</span>
+            <span class="chip">?action=0|1|2|3</span>
+            <span class="chip">?object_id=</span>
+            <span class="chip">?start_date=&end_date= (timestamp oralig'i)</span>
+          </div>
+          <p style="font-size:13px;color:var(--ink-muted);margin-top:2px;">Standart tartib &mdash; eng yangisi birinchi (<span class="mono">-timestamp</span>).</p>
+          <div class="sub-h">Javob namunasi (bitta yozuv)</div>
+          <div class="codeblock"><pre id="audit-res"></pre><button class="copy-btn" data-target="audit-res">nusxa</button></div>
+          <div class="note"><span class="mono">action</span>: <b>0</b> = yaratildi, <b>1</b> = o'zgartirildi, <b>2</b> = o'chirildi. <span class="mono">changes</span> &mdash; o'zgargan maydonlar <span class="mono">{"maydon": ["eski", "yangi"]}</span> ko'rinishida.</div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer>Ichki backend hujjati &middot; kod manbasidan avtomatik tuzilgan &middot; joriy holat uchun har doim <span class="mono">/api/docs/</span> bilan solishtiring.</footer>
+</div>
+
+<script>
+const ENV = {
+  data: "{ ... resurs ma'lumoti ... }",
+  error: null,
+  success: true
+};
+
+const RESOURCES = [
+  {
+    id:"roles", group:"accounts", title:"Rollar", base:"/api/v1/accounts/roles/",
+    app:"accounts", model:"role", swaggerHidden:true, activeOnly:true,
+    search:["name"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"]],
+    writeFields:[
+      ["name","string","Ha","Rol nomi, masalan \"Sotuvchi\", \"Kassir\""]
+    ],
+    example:{id:"9c1a2e40-11b2-4a7e-8f3d-0a5b6c7d8e01",name:"Sotuvchi",created_at:"2026-02-11T09:12:04+05:00",updated_at:"2026-02-11T09:12:04+05:00"}
+  },
+  {
+    id:"users", group:"accounts", title:"Foydalanuvchilar", base:"/api/v1/accounts/users/",
+    app:"accounts", model:"user", swaggerHidden:true, activeOnly:true,
+    search:["full_name","phone_number"], ordering:["full_name","created_at"],
+    filters:[["full_name","F.I.Sh. bo'yicha (icontains)"],["phone_number","telefon bo'yicha (icontains)"],["role","rol UUID (vergul bilan bir nechta)"],["branch","filial UUID (vergul bilan bir nechta)"],["is_staff","true/false"]],
+    writeFields:[
+      ["full_name","string","Ha","F.I.Sh."],
+      ["phone_number","string","Ha","Login sifatida ishlatiladi, unikal"],
+      ["password","string","Yaratishda — ha, yangilashda — yo'q","Kamida 8 belgi, faqat yozish uchun"],
+      ["role","uuid","Yo'q","Mavjud rol id'si"],
+      ["branch","uuid","Yo'q","Mavjud filial id'si"],
+      ["is_staff","boolean","Yo'q","true bo'lsa /admin/ ga kira oladi"]
+    ],
+    example:{id:"4d2f8b10-77a1-4c9e-9b2a-1e3f4a5b6c7d",full_name:"Aziza Karimova",phone_number:"+998901234567",is_staff:false,role_info:{id:"9c1a2e40-11b2-4a7e-8f3d-0a5b6c7d8e01",name:"Sotuvchi"},branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},created_at:"2026-02-11T09:15:00+05:00",updated_at:"2026-02-11T09:15:00+05:00"},
+    extraNote:"Javobda <span class=\"mono\">password</span>, <span class=\"mono\">role</span>, <span class=\"mono\">branch</span> ko'rinmaydi — ular faqat yozish uchun; o'qishda ularning o'rnini <span class=\"mono\">role_info</span> / <span class=\"mono\">branch_info</span> (id + name) egallaydi."
+  },
+  {
+    id:"countries", group:"org", title:"Davlatlar", base:"/api/v1/organization/countries/",
+    app:"organization", model:"country", activeOnly:true,
+    search:["name"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"]],
+    writeFields:[["name","string","Ha","Davlat nomi, masalan \"O'zbekiston\""]],
+    example:{id:"1a2b3c4d-5e6f-4708-9a0b-1c2d3e4f5061",name:"O'zbekiston",created_at:"2026-01-05T08:00:00+05:00",updated_at:"2026-01-05T08:00:00+05:00"}
+  },
+  {
+    id:"regions", group:"org", title:"Viloyatlar", base:"/api/v1/organization/regions/",
+    app:"organization", model:"region", activeOnly:true,
+    search:["name","country__name"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["country","davlat UUID (vergul bilan bir nechta)"]],
+    writeFields:[["name","string","Ha","Viloyat nomi"],["country","uuid","Ha","Davlat id'si"]],
+    example:{id:"2b3c4d5e-6f70-4819-ab1c-2d3e4f506172",name:"Toshkent viloyati",country_info:{id:"1a2b3c4d-5e6f-4708-9a0b-1c2d3e4f5061",name:"O'zbekiston"},created_at:"2026-01-05T08:02:00+05:00",updated_at:"2026-01-05T08:02:00+05:00"}
+  },
+  {
+    id:"districts", group:"org", title:"Tumanlar", base:"/api/v1/organization/districts/",
+    app:"organization", model:"district", activeOnly:true,
+    search:["name","region__name"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["region","viloyat UUID (vergul bilan bir nechta)"]],
+    writeFields:[["name","string","Ha","Tuman nomi"],["region","uuid","Ha","Viloyat id'si"]],
+    example:{id:"3c4d5e6f-7081-492a-bc2d-3e4f50617283",name:"Chilonzor tumani",region_info:{id:"2b3c4d5e-6f70-4819-ab1c-2d3e4f506172",name:"Toshkent viloyati"},created_at:"2026-01-05T08:03:00+05:00",updated_at:"2026-01-05T08:03:00+05:00"}
+  },
+  {
+    id:"organizations", group:"org", title:"Tashkilotlar", base:"/api/v1/organization/organizations/",
+    app:"organization", model:"organization", activeOnly:false,
+    search:["name","inn","phone","director"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["inn","INN bo'yicha (icontains)"],["region","viloyat UUID (bir nechta)"],["district","tuman UUID (bir nechta)"],["status","true/false — faol/to'xtatilgan"],["branches_count_min / branches_count_max","filiallar soni oralig'i"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Tashkilot nomi, masalan \"Gilam Olami\" MChJ"],
+      ["inn","string","Ha","Soliq to'lovchi identifikatsiya raqami, unikal"],
+      ["phone","string","Yo'q",""],
+      ["director","string","Yo'q","Rahbar F.I.Sh."],
+      ["region","uuid","Ha",""],
+      ["district","uuid","Ha",""],
+      ["address","string","Yo'q",""],
+      ["prefix","string","Yo'q","Ichki hujjat/kod prefiksi"]
+    ],
+    example:{id:"4d5e6f70-8192-4a3b-cd3e-4f5061728394",name:"\"Gilam Olami\" MChJ",inn:"305761234",phone:"+998712001122",director:"Sardor Yusupov",region_info:{id:"2b3c4d5e-6f70-4819-ab1c-2d3e4f506172",name:"Toshkent viloyati"},district_info:{id:"3c4d5e6f-7081-492a-bc2d-3e4f50617283",name:"Chilonzor tumani"},address:"Chilonzor tumani, Bunyodkor ko'chasi 12",prefix:"GO",branches_count:3,status:true,created_at:"2026-01-06T10:00:00+05:00",updated_at:"2026-02-01T14:30:00+05:00"},
+    action:{method:"GET",path:"/api/v1/organization/organizations/counts/",title:"Holat statistikasi",desc:"Faol va to'xtatilgan tashkilotlar sonini qaytaradi. Filter/pagination qo'llanmaydi.",res:{active:41,inactive:3}}
+  },
+  {
+    id:"branches", group:"org", title:"Filiallar", base:"/api/v1/organization/branches/",
+    app:"organization", model:"branch", activeOnly:false,
+    search:["name","phone","address","organization__name"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["organization","tashkilot UUID (bir nechta)"],["region","viloyat UUID (bir nechta)"],["district","tuman UUID (bir nechta)"],["status","true/false — faol/yopilgan"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["organization","uuid","Ha","Tegishli tashkilot id'si"],
+      ["name","string","Ha","Filial nomi, masalan \"Chilonzor filiali\""],
+      ["phone","string","Yo'q",""],
+      ["region","uuid","Ha",""],
+      ["district","uuid","Ha",""],
+      ["address","string","Yo'q",""]
+    ],
+    example:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",organization_info:{id:"4d5e6f70-8192-4a3b-cd3e-4f5061728394",name:"\"Gilam Olami\" MChJ"},name:"Chilonzor filiali",phone:"+998712003344",region_info:{id:"2b3c4d5e-6f70-4819-ab1c-2d3e4f506172",name:"Toshkent viloyati"},district_info:{id:"3c4d5e6f-7081-492a-bc2d-3e4f50617283",name:"Chilonzor tumani"},address:"Bunyodkor ko'chasi 12A",warehouses_count:1,status:true,created_at:"2026-01-07T09:00:00+05:00",updated_at:"2026-01-20T11:10:00+05:00"},
+    action:{method:"GET",path:"/api/v1/organization/branches/counts/",title:"Holat statistikasi",desc:"Faol va yopilgan filiallar sonini qaytaradi. Filter/pagination qo'llanmaydi.",res:{active:57,inactive:4}}
+  },
+  {
+    id:"qualities", group:"catalog", title:"Sifatlar", base:"/api/v1/catalog/qualities/",
+    app:"catalog", model:"quality", activeOnly:false,
+    search:["name","description"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["status","true/false — faol/nofaol"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Sifat nomi, masalan \"Premium\""],
+      ["description","string","Yo'q","Tavsif"]
+    ],
+    example:{id:"5e6f7081-9203-4a3c-8d4e-506172839405",name:"Premium",description:"Yuqori sifat toifasi",status:true,created_at:"2026-02-01T09:00:00+05:00",updated_at:"2026-02-01T09:00:00+05:00"}
+  },
+  {
+    id:"units", group:"catalog", title:"O'lchov birliklari", base:"/api/v1/catalog/units/",
+    app:"catalog", model:"unit", activeOnly:false,
+    search:["name","description"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["status","true/false — faol/nofaol"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Birlik nomi, masalan \"kv.m\""],
+      ["description","string","Yo'q","Tavsif"]
+    ],
+    example:{id:"6f708192-0314-4b4d-9e5f-617283940516",name:"kv.m",description:"Kvadrat metr",status:true,created_at:"2026-02-01T09:05:00+05:00",updated_at:"2026-02-01T09:05:00+05:00"}
+  },
+  {
+    id:"colors", group:"catalog", title:"Ranglar", base:"/api/v1/catalog/colors/",
+    app:"catalog", model:"productcolor", activeOnly:false,
+    search:["name","description","color_hex"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["status","true/false — faol/nofaol"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Rang nomi, masalan \"Qizil\""],
+      ["description","string","Yo'q","Tavsif"],
+      ["color_hex","string","Yo'q","HEX format, masalan \"#B33A3A\""]
+    ],
+    example:{id:"70819203-1425-4c5e-af60-728394051627",name:"Qizil",description:"",color_hex:"#B33A3A",status:true,created_at:"2026-02-01T09:10:00+05:00",updated_at:"2026-02-01T09:10:00+05:00"}
+  },
+  {
+    id:"counterparty-types", group:"finance", title:"Kontragent turlari", base:"/api/v1/finance/counterparty-types/",
+    app:"finance", model:"counterpartytype", activeOnly:false,
+    search:["name"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["status","true/false — faol/nofaol"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Kontragent turi nomi, masalan \"Yetkazib beruvchi\""]
+    ],
+    example:{id:"92031425-3647-4e70-c182-940516273849",name:"Yetkazib beruvchi",status:true,created_at:"2026-02-01T09:20:00+05:00",updated_at:"2026-02-01T09:20:00+05:00"}
+  },
+  {
+    id:"positions", group:"hr", title:"Lavozimlar", base:"/api/v1/hr/positions/",
+    app:"hr", model:"position", activeOnly:false,
+    search:["name","description"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["status","true/false — faol/nofaol"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Lavozim nomi, masalan \"Sotuvchi-maslahatchi\""],
+      ["description","string","Yo'q","Tavsif"]
+    ],
+    example:{id:"81920314-2536-4d6f-b071-839405162738",name:"Sotuvchi-maslahatchi",description:"",status:true,created_at:"2026-02-01T09:15:00+05:00",updated_at:"2026-02-01T09:15:00+05:00"}
+  }
+];
+
+const GROUPS = [
+  {key:"kirish", label:"Kirish", links:[["kirish","Umumiy qoidalar"],["texnik","Texnik havolalar"]]},
+  {key:"auth", label:"Auth", links:[["auth-login","Login"],["auth-refresh","Token yangilash"]]},
+  {key:"accounts", label:"Accounts", links:[["roles","Rollar"],["users","Foydalanuvchilar"]]},
+  {key:"org", label:"Tashkilot", links:[["countries","Davlatlar"],["regions","Viloyatlar"],["districts","Tumanlar"],["organizations","Tashkilotlar"],["branches","Filiallar"]]},
+  {key:"catalog", label:"Katalog", links:[["qualities","Sifatlar"],["units","O'lchov birliklari"],["colors","Ranglar"]]},
+  {key:"finance", label:"Moliya", links:[["counterparty-types","Kontragent turlari"]]},
+  {key:"hr", label:"HR", links:[["positions","Lavozimlar"]]},
+  {key:"audits", label:"Audit", links:[["audit-logs","Loglar"]]}
+];
+
+function j(obj){ return JSON.stringify(obj, null, 2); }
+function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+// --- sidebar ---
+const side = document.getElementById('side');
+GROUPS.forEach(g => {
+  const wrap = document.createElement('div');
+  wrap.className = 'side-group';
+  const h = document.createElement('div');
+  h.className = 'side-group-h';
+  h.textContent = g.label;
+  wrap.appendChild(h);
+  g.links.forEach(([id, label]) => {
+    const a = document.createElement('a');
+    a.className = 'side-link';
+    a.href = '#' + id;
+    a.textContent = label;
+    a.dataset.target = id;
+    wrap.appendChild(a);
+  });
+  side.appendChild(wrap);
+});
+
+// --- static code blocks ---
+document.getElementById('envelope-code').textContent =
+j({data:"{ muvaffaqiyatli bo'lsa shu yerda }",error:null,success:true}) + "\n\n" +
+j({data:null,error:{errorId:400,errorCode:"invalid",isFriendly:true,errorMsg:"Ma'lumotlarni tekshirishda xatolik yuzaga keldi.",details:{"phone_number":["Bu maydon majburiy."]}},success:false});
+
+document.getElementById('auth-header-code').textContent = "Authorization: Bearer <access_token>";
+
+document.getElementById('page-code').textContent = j({
+  data:{count:132,next:"https://.../api/v1/.../?page=2",previous:null,results:["{ obyekt 1 }","{ obyekt 2 }","..."]},
+  error:null, success:true
+});
+
+document.getElementById('err400-code').textContent = j({
+  data:null,
+  error:{errorId:400,errorCode:"invalid",isFriendly:true,errorMsg:"Ma'lumotlarni tekshirishda xatolik yuzaga keldi.",details:{"name":["Bu maydon bo'sh bo'lishi mumkin emas."]}},
+  success:false
+});
+
+document.getElementById('login-req').textContent = j({phone_number:"+998901234567",password:"••••••••"});
+document.getElementById('login-res').textContent = j({
+  data:{
+    access:"eyJhbGciOiJIUzI1NiIs...",
+    refresh:"eyJhbGciOiJIUzI1NiIs...",
+    user:{id:"4d2f8b10-77a1-4c9e-9b2a-1e3f4a5b6c7d",full_name:"Aziza Karimova",phone_number:"+998901234567",is_staff:false,role_info:{id:"9c1a2e40-11b2-4a7e-8f3d-0a5b6c7d8e01",name:"Sotuvchi"},branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},created_at:"2026-02-11T09:15:00+05:00",updated_at:"2026-02-11T09:15:00+05:00"}
+  },
+  error:null, success:true
+});
+document.getElementById('refresh-req').textContent = j({refresh:"eyJhbGciOiJIUzI1NiIs..."});
+document.getElementById('refresh-res').textContent = j({data:{access:"eyJhbGciOiJIUzI1NiIs..."},error:null,success:true});
+
+document.getElementById('audit-res').textContent = j({
+  id:8842, action:1, object_id:"4d2f8b10-77a1-4c9e-9b2a-1e3f4a5b6c7d", object_pk:"4d2f8b10-77a1-4c9e-9b2a-1e3f4a5b6c7d",
+  object_repr:"Aziza Karimova (+998901234567)", content_type:14, content_type_name:"user",
+  actor:"1e2d3c4b-5a69-4788-9f0e-1a2b3c4d5e6f", actor_name:"Sardor Yusupov",
+  remote_addr:"84.54.112.10", changes:{"branch":["Chilonzor filiali","Mirzo Ulug'bek filiali"]},
+  timestamp:"2026-02-18T13:42:07+05:00", additional_data:null
+});
+
+// --- CRUD operation rows ---
+function opsTable(r){
+  const perm = (verb) => `${r.app}.${verb}_${r.model}`;
+  const rows = [
+    ["GET", r.base, "Ro'yxat (sahifalangan, filter/search/ordering bilan)", perm("view")],
+    ["POST", r.base, "Yangi obyekt yaratish", perm("add")],
+    ["GET", r.base + "{id}/", "Bitta obyektni olish", perm("view")],
+    ["PUT / PATCH", r.base + "{id}/", "Yangilash — PUT to'liq, PATCH qisman", perm("change")],
+    ["DELETE", r.base + "{id}/", "O'chirish (soft-delete)", perm("delete")]
+  ];
+  const mcls = {GET:"m-get",POST:"m-post","PUT / PATCH":"m-put",DELETE:"m-delete"};
+  let html = '<div class="table-wrap"><table><thead><tr><th>Metod</th><th>Yo\'l</th><th>Tavsif</th><th>Ruxsat</th></tr></thead><tbody>';
+  rows.forEach(([m,p,d,perm]) => {
+    html += `<tr><td><span class="method ${mcls[m]}">${m}</span></td><td class="path">${esc(p)}</td><td>${esc(d)}</td><td class="perm">${esc(perm)}</td></tr>`;
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function writeTable(fields){
+  let html = '<div class="table-wrap"><table><thead><tr><th>Maydon</th><th>Turi</th><th>Majburiy</th><th>Izoh</th></tr></thead><tbody>';
+  fields.forEach(([name,type,req,note]) => {
+    const reqCls = /^Ha/.test(req) ? 'req-yes' : (req.startsWith('Ha') ? 'req-yes':'req-no');
+    const cls = req.trim().startsWith('Ha') ? 'req-yes' : (req === "Yo'q" ? 'req-no' : 'req-yes');
+    html += `<tr><td class="mono">${esc(name)}</td><td class="mono">${esc(type)}</td><td class="${cls}">${esc(req)}</td><td>${esc(note)}</td></tr>`;
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function chips(list, prefix){
+  return list.map(item => {
+    if (Array.isArray(item)) return `<span class="chip">?${esc(item[0])}= &mdash; ${esc(item[1])}</span>`;
+    return `<span class="chip">${esc(item)}</span>`;
+  }).join('');
+}
+
+function renderResource(r, container){
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.id = r.id;
+
+  let badges = '';
+  if (r.swaggerHidden) badges += `<span class="badge-note">Swagger'da yashirilgan</span>`;
+  badges += r.activeOnly
+    ? `<span class="badge-note">Soft-delete: ro'yxatdan yo'qoladi</span>`
+    : `<span class="badge-note">Soft-delete: status=false, ro'yxatda qoladi</span>`;
+
+  card.innerHTML = `
+    <div class="card-h"><h3>${esc(r.title)}</h3></div>
+    <p class="card-base">${esc(r.base)}</p>
+    <div class="card-badges">${badges}</div>
+    ${opsTable(r)}
+    <div class="sub-h">Query parametrlar</div>
+    <div class="chips">
+      <span class="chip">?search= &rarr; ${esc(r.search.join(', '))}</span>
+      <span class="chip">?ordering=${esc(r.ordering.join(' | '))}</span>
+      ${chips(r.filters)}
+    </div>
+    <div class="sub-h">So'rov maydonlari (POST / PATCH)</div>
+    ${writeTable(r.writeFields)}
+    <div class="sub-h">Javob namunasi (bitta obyekt)</div>
+    <div class="codeblock"><pre id="ex-${r.id}"></pre><button class="copy-btn" data-target="ex-${r.id}">nusxa</button></div>
+    ${r.extraNote ? `<div class="note">${r.extraNote}</div>` : ''}
+    ${r.action ? `
+      <div class="sub-h">Maxsus amal</div>
+      <div class="table-wrap"><table><thead><tr><th>Metod</th><th>Yo'l</th><th>Tavsif</th></tr></thead><tbody>
+        <tr><td><span class="method m-get">${r.action.method}</span></td><td class="path">${esc(r.action.path)}</td><td>${esc(r.action.desc)}</td></tr>
+      </tbody></table></div>
+      <div class="codeblock" style="margin-top:8px;"><pre id="ex-${r.id}-action"></pre><button class="copy-btn" data-target="ex-${r.id}-action">nusxa</button></div>
+    ` : ''}
+  `;
+  container.appendChild(card);
+  document.getElementById(`ex-${r.id}`).textContent = j(r.example);
+  if (r.action) document.getElementById(`ex-${r.id}-action`).textContent = j(r.action.res);
+}
+
+const WRAP_BY_GROUP = {
+  accounts: document.getElementById('accounts-resources'),
+  org: document.getElementById('org-resources'),
+  catalog: document.getElementById('catalog-resources'),
+  finance: document.getElementById('finance-resources'),
+  hr: document.getElementById('hr-resources'),
+};
+RESOURCES.forEach(r => renderResource(r, WRAP_BY_GROUP[r.group]));
+
+// --- copy buttons ---
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  const el = document.getElementById(btn.dataset.target);
+  if (!el) return;
+  try {
+    navigator.clipboard.writeText(el.textContent);
+    const old = btn.textContent;
+    btn.textContent = 'nusxalandi';
+    setTimeout(() => { btn.textContent = old; }, 1200);
+  } catch (err) { /* clipboard mavjud bo'lmasa jim o'tiladi */ }
+});
+
+// --- scroll spy ---
+try {
+  const links = Array.from(document.querySelectorAll('.side-link'));
+  const targets = links.map(l => document.getElementById(l.dataset.target)).filter(Boolean);
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const link = links.find(l => l.dataset.target === entry.target.id);
+      if (!link) return;
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -75% 0px', threshold: 0 });
+  targets.forEach(t => io.observe(t));
+} catch (err) { /* IntersectionObserver yo'q bo'lsa jim o'tiladi */ }
+</script>
+
+</body></html>
