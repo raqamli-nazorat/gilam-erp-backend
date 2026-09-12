@@ -125,25 +125,29 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
             return True
         return super().has_perm(perm, obj)
 
-    def get_accessible_branches(self):
+    def get_accessible_branches(self, include_inactive=False):
         from apps.organization.models import Branch
 
+        manager = Branch.objects.all() if include_inactive else Branch.objects.active()
         if self.is_system_admin:
-            return Branch.objects.active()
+            return manager
 
         branch_ids = set()
         if self.role and self.role.branches.exists():
-            branch_ids.update(
-                self.role.branches.filter(is_active=True).values_list("id", flat=True)
+            branches_qs = (
+                self.role.branches.all()
+                if include_inactive
+                else self.role.branches.filter(is_active=True)
             )
+            branch_ids.update(branches_qs.values_list("id", flat=True))
         if self.branch_id:
             branch_ids.add(self.branch_id)
 
         if branch_ids:
-            return Branch.objects.active().filter(id__in=branch_ids)
+            return manager.filter(id__in=branch_ids)
 
         if self.organization_id:
-            return Branch.objects.active().filter(
+            return manager.filter(
                 organization_id=self.organization_id
             )
 

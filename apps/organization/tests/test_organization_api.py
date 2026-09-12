@@ -1,8 +1,9 @@
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.accounts.models import User
+from apps.accounts.models import Role, User
 from apps.organization.models import (
     Branch,
     Country,
@@ -197,6 +198,137 @@ class OrganizationAPITestCase(APITestCase):
         self.client.force_authenticate(user=None)
         response = self.client.get("/api/v1/organization/organizations/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_suspend_organization_success_by_system_admin(self):
+        response = self.client.patch(
+            f"/api/v1/organization/organizations/{self.organization.id}/suspend/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.organization.refresh_from_db()
+        self.assertFalse(self.organization.is_active)
+        self.assertFalse(response.data["is_active"])
+
+    def test_activate_organization_success_by_system_admin(self):
+        self.organization.is_active = False
+        self.organization.save()
+
+        response = self.client.patch(
+            f"/api/v1/organization/organizations/{self.organization.id}/activate/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.organization.refresh_from_db()
+        self.assertTrue(self.organization.is_active)
+        self.assertTrue(response.data["is_active"])
+
+    def test_suspend_organization_forbidden_for_regular_user(self):
+        regular_user = User.objects.create_user(
+            phone_number="+998909998877",
+            password="StrongPass123",
+            full_name="Branch Manager",
+            organization=self.organization,
+            branch=self.branch,
+        )
+        self.client.force_authenticate(regular_user)
+
+        response = self.client.patch(
+            f"/api/v1/organization/organizations/{self.organization.id}/suspend/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_close_branch_success_by_system_admin(self):
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/close/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.branch.refresh_from_db()
+        self.assertFalse(self.branch.is_active)
+        self.assertFalse(response.data["is_active"])
+
+    def test_open_branch_success_by_system_admin(self):
+        self.branch.is_active = False
+        self.branch.save()
+
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/open/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.branch.refresh_from_db()
+        self.assertTrue(self.branch.is_active)
+        self.assertTrue(response.data["is_active"])
+
+    def test_close_branch_by_user_with_permission(self):
+        perm = Permission.objects.get(
+            content_type__app_label="organization",
+            codename="close_branch",
+        )
+        role = Role.objects.create(
+            name="Branch Admin",
+            organization=self.organization,
+        )
+        role.permissions.add(perm)
+
+        branch_admin = User.objects.create_user(
+            phone_number="+998905554433",
+            password="StrongPass123",
+            full_name="Branch Admin User",
+            organization=self.organization,
+            branch=self.branch,
+            role=role,
+        )
+        self.client.force_authenticate(branch_admin)
+
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/close/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.branch.refresh_from_db()
+        self.assertFalse(self.branch.is_active)
+
+    def test_open_branch_by_user_with_permission(self):
+        self.branch.is_active = False
+        self.branch.save()
+
+        perm = Permission.objects.get(
+            content_type__app_label="organization",
+            codename="open_branch",
+        )
+        role = Role.objects.create(
+            name="Branch Re-opener",
+            organization=self.organization,
+        )
+        role.permissions.add(perm)
+
+        branch_admin = User.objects.create_user(
+            phone_number="+998905554434",
+            password="StrongPass123",
+            full_name="Branch Re-opener User",
+            organization=self.organization,
+            branch=self.branch,
+            role=role,
+        )
+        self.client.force_authenticate(branch_admin)
+
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/open/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.branch.refresh_from_db()
+        self.assertTrue(self.branch.is_active)
+
+    def test_close_branch_forbidden_without_permission(self):
+        no_perm_user = User.objects.create_user(
+            phone_number="+998905554435",
+            password="StrongPass123",
+            full_name="No Perm User",
+            organization=self.organization,
+            branch=self.branch,
+        )
+        self.client.force_authenticate(no_perm_user)
+
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/close/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class OrganizationServiceTestCase(TestCase):

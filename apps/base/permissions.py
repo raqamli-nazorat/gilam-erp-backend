@@ -108,6 +108,14 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
                 return False
 
 
+        if getattr(getattr(obj, "_meta", None), "model_name", None) == "branch":
+            accessible_ids = set(
+                user.get_accessible_branches(include_inactive=True).values_list("id", flat=True)
+            )
+            if obj.id not in accessible_ids:
+                return False
+
+
         if hasattr(obj, "organization_id") and obj.organization_id:
             if obj.organization_id != user.organization_id:
                 return False

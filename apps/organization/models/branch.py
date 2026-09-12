@@ -40,6 +40,10 @@ class Branch(BaseModel):
         db_table = "organization_branch"
         verbose_name = "Filial"
         verbose_name_plural = "Filiallar"
+        permissions = [
+            ("close_branch", "Filialni yopish"),
+            ("open_branch", "Filialni ochish"),
+        ]
 
     def __str__(self):
         return self.name
