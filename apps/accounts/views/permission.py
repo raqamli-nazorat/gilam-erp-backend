@@ -24,14 +24,16 @@ class PermissionViewSet(BaseReadOnlyViewSet):
         )
 
         if not user.is_system_admin:
-            qs = qs.exclude(
-                Q(
-                    content_type__app_label="organization",
-                    codename__in=["add_organization", "delete_organization"],
-                )
-            )
+            from ..serializers.role import SYSTEM_PERMISSIONS
+
+            system_q = Q()
+            for sys_perm in SYSTEM_PERMISSIONS:
+                app, code = sys_perm.split(".")
+                system_q |= Q(content_type__app_label=app, codename=code)
+            qs = qs.exclude(system_q)
 
         return qs
+
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
