@@ -13,7 +13,6 @@ from ..services import get_organization_status_counts
 
 
 class OrganizationViewSet(BaseManageViewSet):
-    """Tashkilotlar uchun CRUD ViewSet."""
 
     queryset = Organization.objects.select_related("region", "district").annotate(
         branches_count=Count(
@@ -28,5 +27,4 @@ class OrganizationViewSet(BaseManageViewSet):
 
     @action(detail=False, methods=["get"])
     def counts(self, request):
-        """Faol va to'xtatilgan tashkilotlar sonini qaytaradi."""
         return Response(get_organization_status_counts())

@@ -4,7 +4,6 @@ from apps.base.models import BaseModel
 
 
 class Employee(BaseModel):
-    """Xodim — filialga biriktirilgan."""
 
     branch = models.ForeignKey(
         "organization.Branch",
@@ -54,5 +53,4 @@ class Employee(BaseModel):
         verbose_name_plural = "Xodimlar"
 
     def __str__(self):
-        """Xodim F.I.Sh. ni qaytaradi."""
         return self.full_name

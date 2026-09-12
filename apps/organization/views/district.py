@@ -9,7 +9,6 @@ from ..serializers import DistrictSerializer
 
 
 class DistrictViewSet(BaseManageViewSet):
-    """Tumanlar uchun CRUD ViewSet."""
 
     queryset = District.objects.active().select_related("region")
     serializer_class = DistrictSerializer

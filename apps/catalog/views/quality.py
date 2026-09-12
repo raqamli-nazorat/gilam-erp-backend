@@ -9,7 +9,6 @@ from ..serializers import QualitySerializer
 
 
 class QualityViewSet(BaseManageViewSet):
-    """Sifatlar uchun CRUD ViewSet."""
 
     queryset = Quality.objects.all()
     serializer_class = QualitySerializer

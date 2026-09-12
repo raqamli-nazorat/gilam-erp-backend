@@ -4,7 +4,6 @@ from apps.base.models import BaseModel
 
 
 class Currency(BaseModel):
-    """Valyuta ma'lumotnomasi (masalan: O'zbekiston so'mi — UZS)."""
 
     name = models.CharField(max_length=255, verbose_name="Nomi")
     short_name = models.CharField(max_length=255, verbose_name="Qisqa nomi")
@@ -15,12 +14,10 @@ class Currency(BaseModel):
         verbose_name_plural = "Valyutalar"
 
     def __str__(self):
-        """Valyuta qisqa nomini qaytaradi."""
         return self.short_name
 
 
 class CurrencyLedger(BaseModel):
-    """Valyuta kursi tarixi — UZS ga nisbatan qiymat."""
 
     currency = models.ForeignKey(
         Currency,
@@ -40,5 +37,4 @@ class CurrencyLedger(BaseModel):
         verbose_name_plural = "Valyuta kurslari"
 
     def __str__(self):
-        """Valyuta, sana va kurs qiymatini qaytaradi."""
         return f"{self.currency} — {self.day}: {self.value}"

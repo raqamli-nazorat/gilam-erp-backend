@@ -6,7 +6,6 @@ from ..models import Position
 
 
 class PositionSerializer(BaseModelSerializer):
-    """Xodim lavozimi uchun serializer."""
 
     status = serializers.BooleanField(source="is_active", read_only=True)
 

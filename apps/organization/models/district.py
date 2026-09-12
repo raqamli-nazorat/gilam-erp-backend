@@ -6,7 +6,6 @@ from .region import Region
 
 
 class District(BaseModel):
-    """Tuman — viloyatga bog'liq."""
 
     region = models.ForeignKey(
         Region,
@@ -23,5 +22,4 @@ class District(BaseModel):
         verbose_name_plural = "Tumanlar"
 
     def __str__(self):
-        """Tuman nomini qaytaradi."""
         return self.name

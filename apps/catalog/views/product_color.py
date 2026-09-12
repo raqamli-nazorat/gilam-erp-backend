@@ -9,7 +9,6 @@ from ..serializers import ProductColorSerializer
 
 
 class ProductColorViewSet(BaseManageViewSet):
-    """Ranglar uchun CRUD ViewSet."""
 
     queryset = ProductColor.objects.all()
     serializer_class = ProductColorSerializer

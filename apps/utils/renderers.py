@@ -1,10 +1,3 @@
-"""
-API javoblarini unifikatsiyalangan standart formatga o'tkazuvchi custom renderers.
-
-Muvaffaqiyatli hamda xatolik bilan yakunlangan barcha javoblar:
-{"data": ..., "error": ..., "success": true/false} shaklida qaytariladi.
-"""
-
 from rest_framework.renderers import JSONRenderer
 
 DEFAULT_VALIDATION_MSG = "Ma'lumotlarni tekshirishda xatolik yuzaga keldi."
@@ -15,25 +8,8 @@ SCHEMA_VIEW_MODULES = ("drf_spectacular", "drf_yasg", "rest_framework.schemas")
 
 
 class ResponseRenderer(JSONRenderer):
-    """
-    Barcha API javoblarini unifikatsiyalangan standart strukturaga o'rab beruvchi renderer.
-
-    - Muvaffaqiyatli javoblar: {"data": data, "error": None, "success": True}
-    - Xatolik javoblari: {"data": None, "error": {...}, "success": False}
-    """
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        """
-        Ma'lumotlarni render qiladi va javobni umumiy API formatiga moslaydi.
-
-        Args:
-            data (Any): View tomonidan qaytarilgan ma'lumotlar payload'i.
-            accepted_media_type (str, optional): Media turi.
-            renderer_context (dict, optional): Context ma'lumotlari.
-
-        Returns:
-            bytes: JSON formatga aylantirilgan baytlar.
-        """
         renderer_context = renderer_context or {}
         response = renderer_context.get("response")
         status_code = getattr(response, "status_code", 200)
@@ -57,15 +33,6 @@ class ResponseRenderer(JSONRenderer):
 
     @staticmethod
     def _is_schema_view(renderer_context):
-        """
-        Joriy so'rov Swagger/OpenAPI dokumentatsiya view'si ekanligini aniqlaydi.
-
-        Args:
-            renderer_context (dict): Context ma'lumotlari.
-
-        Returns:
-            bool: Schema view bo'lsa True, aks holda False.
-        """
         view = renderer_context.get("view")
         if view is None:
             return False
@@ -73,16 +40,6 @@ class ResponseRenderer(JSONRenderer):
         return module.startswith(SCHEMA_VIEW_MODULES)
 
     def _build_error(self, data, status_code):
-        """
-        Xatolik javoblari uchun unifikatsiyalangan error strukturasini quradi.
-
-        Args:
-            data (Any): Xatolik ma'lumoti.
-            status_code (int): HTTP status kodi.
-
-        Returns:
-            dict: Standart error ob'ekti.
-        """
         is_friendly = True
         error_code = None
 
@@ -106,16 +63,6 @@ class ResponseRenderer(JSONRenderer):
 
     @staticmethod
     def _parse_error_payload(data, status_code):
-        """
-        Xatolik payload'ini tahlil qilib, errorMsg va details'ni ajratib beradi.
-
-        Args:
-            data (Any): Xatolik ma'lumotlari.
-            status_code (int): HTTP status kodi.
-
-        Returns:
-            tuple[str, Any]: (error_msg, details) juftligi.
-        """
         if isinstance(data, dict):
             if "detail" in data:
                 detail = data.pop("detail")

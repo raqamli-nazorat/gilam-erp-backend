@@ -6,7 +6,6 @@ from .quality import Quality
 
 
 class Design(BaseModel):
-    """Gilam dizayni — sifatga bog'liq."""
 
     quality = models.ForeignKey(
         Quality,
@@ -24,12 +23,10 @@ class Design(BaseModel):
         verbose_name_plural = "Dizaynlar"
 
     def __str__(self):
-        """Dizayn nomini qaytaradi."""
         return self.name
 
 
 class DesignPhoto(BaseModel):
-    """Dizayn fotosurati."""
 
     design = models.ForeignKey(
         Design,
@@ -48,5 +45,4 @@ class DesignPhoto(BaseModel):
         verbose_name_plural = "Dizayn fotosuratlari"
 
     def __str__(self):
-        """Fotosurat nomini qaytaradi."""
         return self.name

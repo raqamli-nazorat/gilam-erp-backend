@@ -1,27 +1,25 @@
-"""
-Barcha loyiha ViewSet'lari uchun bazaviy ViewSet klasslari.
-
-Ushbu modul tayyor AutoSchema va DynamicPermission mixinlaridan iborat
-standart CRUD va ReadOnly ViewSet klasslarini taqdim etadi.
-"""
-
 from rest_framework import viewsets
 
 from apps.base.mixins import (
     AutoSchemaMixin,
     DynamicPermissionMixin,
+    TenantBranchScopeMixin,
 )
 
 
-class BaseManageViewSet(AutoSchemaMixin, DynamicPermissionMixin, viewsets.ModelViewSet):
-    """
-    To'liq CRUD (Create, Read, Update, Delete) operatsiyalari uchun bazaviy ViewSet.
-    """
+class BaseManageViewSet(
+    AutoSchemaMixin,
+    DynamicPermissionMixin,
+    TenantBranchScopeMixin,
+    viewsets.ModelViewSet,
+):
+    pass
 
 
 class BaseReadOnlyViewSet(
-    AutoSchemaMixin, DynamicPermissionMixin, viewsets.ReadOnlyModelViewSet
+    AutoSchemaMixin,
+    DynamicPermissionMixin,
+    TenantBranchScopeMixin,
+    viewsets.ReadOnlyModelViewSet,
 ):
-    """
-    Faqat o'qish (List, Retrieve) operatsiyalari uchun bazaviy ViewSet.
-    """
+    pass

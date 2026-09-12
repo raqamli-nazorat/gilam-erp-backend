@@ -4,7 +4,6 @@ from ..models import Country
 
 
 class CountrySerializer(BaseModelSerializer):
-    """Davlat ma'lumotnomasi uchun serializer."""
 
     class Meta:
         model = Country

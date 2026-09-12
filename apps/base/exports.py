@@ -1,5 +1,3 @@
-"""Admin panelida Excel eksport imkoniyatini beruvchi universal mixin."""
-
 import io
 
 from django.contrib import messages
@@ -11,7 +9,6 @@ from openpyxl.styles import Alignment, Font, PatternFill
 
 
 def _get_concrete_fields(model):
-    """Modelning DB ustuniga ega barcha fieldlarini qaytaradi."""
     result = []
     for f in model._meta.get_fields():
         if not hasattr(f, "column"):
@@ -25,7 +22,6 @@ def _get_concrete_fields(model):
 
 
 def _build_excel(model, ids, selected_fields):
-    """Tanlangan fieldlar bo'yicha .xlsx fayl yaratadi va HttpResponse qaytaradi."""
     qs = model.objects.filter(pk__in=ids).values(*selected_fields)
 
     wb = Workbook()
@@ -64,7 +60,6 @@ def _build_excel(model, ids, selected_fields):
 
 
 class ExportExcelMixin:
-    """Changelist sahifasida modal orqali Excel eksport qo'shuvchi mixin."""
 
     change_list_template = "admin/export_excel_changelist.html"
 
@@ -82,7 +77,6 @@ class ExportExcelMixin:
         return extra + super().get_urls()
 
     def changelist_view(self, request, extra_context=None):
-        """Changelist kontekstiga export maydonlari va URL ni qo'shadi."""
         extra_context = extra_context or {}
         meta = self.model._meta
         extra_context["export_fields"] = _get_concrete_fields(self.model)
@@ -92,7 +86,6 @@ class ExportExcelMixin:
         return super().changelist_view(request, extra_context=extra_context)
 
     def _export_excel_view(self, request):
-        """POST: ids[] va fields[] qabul qilib Excel fayl qaytaradi."""
         if request.method != "POST":
             return redirect("../")
 

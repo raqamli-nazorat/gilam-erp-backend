@@ -1,10 +1,3 @@
-"""
-API so'rovlarini cheklash (throttling) uchun moslashtirilgan klasslar va mixinlar.
-
-Ushbu modul moslashuvchan rate-limit formatlarini qo'llab-quvvatlaydi va
-throttling chegarasidan oshganda mos javob berish mexanizmini ta'minlaydi.
-"""
-
 import hashlib
 import logging
 import re
@@ -19,23 +12,8 @@ UNITS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 
 
 class CustomScopedRateThrottle(ScopedRateThrottle):
-    """
-    Maxsus kengaytirilgan ScopedRateThrottle klassi.
-
-    Moslashuvchan tezlik formatlarini (masalan, '5/3m', '10/12h') qo'llab-quvvatlaydi
-    hamda foydalanuvchi yoki IP bo'yicha kesh kalitlarini shakllantiradi.
-    """
 
     def parse_rate(self, rate):
-        """
-        Berilgan tezlik matnini (rate string) tahlil qilib, so'rovlar soni va soniyalardagi davomiylikni qaytaradi.
-
-        Args:
-            rate (str): '5/m', '3/3m', '10/12h' ko'rinishidagi tezlik chegarasi.
-
-        Returns:
-            tuple[int|None, int|None]: (num_requests, duration) ko'rinishidagi juftlik.
-        """
         if rate is None:
             return (None, None)
 
@@ -57,16 +35,6 @@ class CustomScopedRateThrottle(ScopedRateThrottle):
         return (num_requests, duration)
 
     def get_cache_key(self, request, view):
-        """
-        Throttling holatini saqlash uchun kesh kalitini shakllantiradi.
-
-        Args:
-            request (Request): DRF request obyekti.
-            view (APIView): Ishga tushirilayotgan view.
-
-        Returns:
-            str | None: Kesh kaliti yoki throttling qo'llanmasa None.
-        """
         if not getattr(self, "scope", None) and hasattr(self, "scope_attr"):
             self.scope = getattr(view, self.scope_attr, None)
 
@@ -85,15 +53,6 @@ class CustomScopedRateThrottle(ScopedRateThrottle):
         return self.cache_format % {"scope": self.scope, "ident": ident}
 
     def _login_ident(self, request):
-        """
-        Tizimga kirish (login) so'rovlari uchun unikal identifikator hosil qiladi.
-
-        Args:
-            request (Request): DRF request obyekti.
-
-        Returns:
-            str: Login identifikator matni.
-        """
         try:
             phone_number = str(request.data.get("phone_number") or "").strip()
         except Exception:
@@ -102,21 +61,8 @@ class CustomScopedRateThrottle(ScopedRateThrottle):
 
 
 class ThrottleExceptionHandlerMixin:
-    """
-    View'lar uchun throttling xatoliklarini qayta ishlovchi va qolgan urinishlar
-    sonini hisoblab beruvchi mixin.
-    """
 
     def handle_exception(self, exc):
-        """
-        Yuzaga kelgan istisno (exception)ni ushlaydi va throttling bo'yicha qo'shimcha ma'lumotlarni qo'shadi.
-
-        Args:
-            exc (Exception): Yuzaga kelgan exception obyekti.
-
-        Returns:
-            Response: DRF Response obyekti.
-        """
         response = super().handle_exception(exc)
 
         if response is None or not isinstance(response.data, dict):
@@ -138,12 +84,6 @@ class ThrottleExceptionHandlerMixin:
         return response
 
     def _get_attempts_left(self):
-        """
-        Joriy so'rov yuboruvchi uchun qolgan urinishlar (attempts_left) sonini hisoblaydi.
-
-        Returns:
-            int | None: Qolgan urinishlar soni yoki hisoblab bo'lmasa None.
-        """
         try:
             for throttle in self.get_throttles():
                 if not isinstance(throttle, ScopedRateThrottle):
