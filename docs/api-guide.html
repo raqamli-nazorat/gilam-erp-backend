@@ -411,7 +411,7 @@ footer{
         <div class="panel">
           <h3>Filter &middot; qidiruv &middot; tartiblash &middot; soft-delete</h3>
           <p><span class="mono">?search=</span> &mdash; resursga xos matn maydonlarida (F.I.Sh., nomi va h.k.) qidiradi. <span class="mono">?ordering=maydon</span> yoki <span class="mono">?ordering=-maydon</span> &mdash; kamayish uchun oldiga <span class="mono">-</span>. UUID/raqam filterlar vergul bilan bir nechta qiymatni qabul qiladi: <span class="mono">?region=uuid1,uuid2</span>.</p>
-          <p><b>Soft-delete:</b> <span class="mono">DELETE</span> obyektni bazadan o'chirmaydi &mdash; <span class="mono">is_active=false</span> qiladi. <b>Rollar, foydalanuvchilar, davlat/viloyat/tuman</b> uchun o'chirilgan obyekt ro'yxat va retrieve'dan butunlay yo'qoladi (404). <b>Tashkilot va filial</b> uchun esa aksincha &mdash; o'chirilgandan keyin ham ro'yxatda <span class="mono">status: false</span> bilan ko'rinishda qoladi (kerak bo'lsa <span class="mono">?status=true</span> bilan filtrlang).</p>
+          <p><b>Soft-delete:</b> <span class="mono">DELETE</span> obyektni bazadan o'chirmaydi &mdash; <span class="mono">is_active=false</span> qiladi. <b>Rollar, foydalanuvchilar, davlat/viloyat/tuman</b> uchun o'chirilgan obyekt ro'yxat va retrieve'dan butunlay yo'qoladi (404). <b>Tashkilot, filial, katalog (sifat/birlik/rang), moliya (kontragent turi) va HR (lavozim)</b> uchun esa aksincha &mdash; o'chirilgandan keyin ham ro'yxatda <span class="mono">status: false</span> bilan ko'rinishda qoladi (kerak bo'lsa <span class="mono">?status=true</span> bilan filtrlang).</p>
         </div>
 
         <div class="panel">
@@ -499,6 +499,27 @@ footer{
         <div class="section-h"><h2>Tashkilot (Organization)</h2><span class="count">5 resurs</span></div>
         <p class="section-intro">Geografik ma'lumotnomalar (davlat &rarr; viloyat &rarr; tuman) va ular ustiga qurilgan tashkilot/filial ierarxiyasi.</p>
         <div id="org-resources"></div>
+      </section>
+
+      <!-- ============ CATALOG ============ -->
+      <section id="catalog">
+        <div class="section-h"><h2>Katalog (Catalog)</h2><span class="count">3 resurs</span></div>
+        <p class="section-intro">Mahsulot ma'lumotnomalari &mdash; sifat, o'lchov birligi, rang. <span class="mono">Dizayn</span> va <span class="mono">Mahsulot partiyasi</span> modellari mavjud, lekin hali ViewSet/serializer yo'q &mdash; API'da ko'rinmaydi.</p>
+        <div id="catalog-resources"></div>
+      </section>
+
+      <!-- ============ FINANCE ============ -->
+      <section id="finance">
+        <div class="section-h"><h2>Moliya (Finance)</h2><span class="count">1 resurs</span></div>
+        <p class="section-intro">Moliyaviy ma'lumotnomalar. Hozircha faqat kontragent turi chiqarilgan &mdash; <span class="mono">Valyuta</span>, <span class="mono">Kontragent</span>, <span class="mono">Hisoblash/ushlab qolish</span> hali API'da yo'q.</p>
+        <div id="finance-resources"></div>
+      </section>
+
+      <!-- ============ HR ============ -->
+      <section id="hr">
+        <div class="section-h"><h2>HR</h2><span class="count">1 resurs</span></div>
+        <p class="section-intro">Xodimlar bo'yicha ma'lumotnoma. Hozircha faqat lavozim chiqarilgan.</p>
+        <div id="hr-resources"></div>
       </section>
 
       <!-- ============ AUDITS ============ -->
@@ -632,6 +653,61 @@ const RESOURCES = [
     ],
     example:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",organization_info:{id:"4d5e6f70-8192-4a3b-cd3e-4f5061728394",name:"\"Gilam Olami\" MChJ"},name:"Chilonzor filiali",phone:"+998712003344",region_info:{id:"2b3c4d5e-6f70-4819-ab1c-2d3e4f506172",name:"Toshkent viloyati"},district_info:{id:"3c4d5e6f-7081-492a-bc2d-3e4f50617283",name:"Chilonzor tumani"},address:"Bunyodkor ko'chasi 12A",warehouses_count:1,status:true,created_at:"2026-01-07T09:00:00+05:00",updated_at:"2026-01-20T11:10:00+05:00"},
     action:{method:"GET",path:"/api/v1/organization/branches/counts/",title:"Holat statistikasi",desc:"Faol va yopilgan filiallar sonini qaytaradi. Filter/pagination qo'llanmaydi.",res:{active:57,inactive:4}}
+  },
+  {
+    id:"qualities", group:"catalog", title:"Sifatlar", base:"/api/v1/catalog/qualities/",
+    app:"catalog", model:"quality", activeOnly:false,
+    search:["name","description"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["status","true/false — faol/nofaol"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Sifat nomi, masalan \"Premium\""],
+      ["description","string","Yo'q","Tavsif"]
+    ],
+    example:{id:"5e6f7081-9203-4a3c-8d4e-506172839405",name:"Premium",description:"Yuqori sifat toifasi",status:true,created_at:"2026-02-01T09:00:00+05:00",updated_at:"2026-02-01T09:00:00+05:00"}
+  },
+  {
+    id:"units", group:"catalog", title:"O'lchov birliklari", base:"/api/v1/catalog/units/",
+    app:"catalog", model:"unit", activeOnly:false,
+    search:["name","description"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["status","true/false — faol/nofaol"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Birlik nomi, masalan \"kv.m\""],
+      ["description","string","Yo'q","Tavsif"]
+    ],
+    example:{id:"6f708192-0314-4b4d-9e5f-617283940516",name:"kv.m",description:"Kvadrat metr",status:true,created_at:"2026-02-01T09:05:00+05:00",updated_at:"2026-02-01T09:05:00+05:00"}
+  },
+  {
+    id:"colors", group:"catalog", title:"Ranglar", base:"/api/v1/catalog/colors/",
+    app:"catalog", model:"productcolor", activeOnly:false,
+    search:["name","description","color_hex"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["status","true/false — faol/nofaol"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Rang nomi, masalan \"Qizil\""],
+      ["description","string","Yo'q","Tavsif"],
+      ["color_hex","string","Yo'q","HEX format, masalan \"#B33A3A\""]
+    ],
+    example:{id:"70819203-1425-4c5e-af60-728394051627",name:"Qizil",description:"",color_hex:"#B33A3A",status:true,created_at:"2026-02-01T09:10:00+05:00",updated_at:"2026-02-01T09:10:00+05:00"}
+  },
+  {
+    id:"counterparty-types", group:"finance", title:"Kontragent turlari", base:"/api/v1/finance/counterparty-types/",
+    app:"finance", model:"counterpartytype", activeOnly:false,
+    search:["name"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["status","true/false — faol/nofaol"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Kontragent turi nomi, masalan \"Yetkazib beruvchi\""]
+    ],
+    example:{id:"92031425-3647-4e70-c182-940516273849",name:"Yetkazib beruvchi",status:true,created_at:"2026-02-01T09:20:00+05:00",updated_at:"2026-02-01T09:20:00+05:00"}
+  },
+  {
+    id:"positions", group:"hr", title:"Lavozimlar", base:"/api/v1/hr/positions/",
+    app:"hr", model:"position", activeOnly:false,
+    search:["name","description"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["status","true/false — faol/nofaol"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Lavozim nomi, masalan \"Sotuvchi-maslahatchi\""],
+      ["description","string","Yo'q","Tavsif"]
+    ],
+    example:{id:"81920314-2536-4d6f-b071-839405162738",name:"Sotuvchi-maslahatchi",description:"",status:true,created_at:"2026-02-01T09:15:00+05:00",updated_at:"2026-02-01T09:15:00+05:00"}
   }
 ];
 
@@ -640,6 +716,9 @@ const GROUPS = [
   {key:"auth", label:"Auth", links:[["auth-login","Login"],["auth-refresh","Token yangilash"]]},
   {key:"accounts", label:"Accounts", links:[["roles","Rollar"],["users","Foydalanuvchilar"]]},
   {key:"org", label:"Tashkilot", links:[["countries","Davlatlar"],["regions","Viloyatlar"],["districts","Tumanlar"],["organizations","Tashkilotlar"],["branches","Filiallar"]]},
+  {key:"catalog", label:"Katalog", links:[["qualities","Sifatlar"],["units","O'lchov birliklari"],["colors","Ranglar"]]},
+  {key:"finance", label:"Moliya", links:[["counterparty-types","Kontragent turlari"]]},
+  {key:"hr", label:"HR", links:[["positions","Lavozimlar"]]},
   {key:"audits", label:"Audit", links:[["audit-logs","Loglar"]]}
 ];
 
@@ -781,9 +860,14 @@ function renderResource(r, container){
   if (r.action) document.getElementById(`ex-${r.id}-action`).textContent = j(r.action.res);
 }
 
-const accountsWrap = document.getElementById('accounts-resources');
-const orgWrap = document.getElementById('org-resources');
-RESOURCES.forEach(r => renderResource(r, r.group === 'accounts' ? accountsWrap : orgWrap));
+const WRAP_BY_GROUP = {
+  accounts: document.getElementById('accounts-resources'),
+  org: document.getElementById('org-resources'),
+  catalog: document.getElementById('catalog-resources'),
+  finance: document.getElementById('finance-resources'),
+  hr: document.getElementById('hr-resources'),
+};
+RESOURCES.forEach(r => renderResource(r, WRAP_BY_GROUP[r.group]));
 
 // --- copy buttons ---
 document.addEventListener('click', (e) => {
