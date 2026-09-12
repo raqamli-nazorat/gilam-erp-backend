@@ -8,7 +8,6 @@ from ..models import Organization
 class OrganizationSerializer(BaseModelSerializer):
 
     branches_count = serializers.SerializerMethodField()
-    status = serializers.BooleanField(source="is_active", read_only=True)
 
     class Meta:
         model = Organization
@@ -22,11 +21,14 @@ class OrganizationSerializer(BaseModelSerializer):
             "district",
             "address",
             "prefix",
+            "is_suspended",
+            "suspension_reason",
             "branches_count",
-            "status",
             "created_at",
             "updated_at",
         ]
+        read_only_fields = ["is_suspended", "suspension_reason"]
+
         related_fields = {
             "region": {"fields": ["id", "name"]},
             "district": {"fields": ["id", "name"]},

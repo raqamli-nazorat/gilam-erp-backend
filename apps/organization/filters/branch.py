@@ -10,7 +10,9 @@ class BranchFilter(django_filters.FilterSet):
     organization = UUIDInFilter(field_name="organization_id", lookup_expr="in")
     region = UUIDInFilter(field_name="region_id", lookup_expr="in")
     district = UUIDInFilter(field_name="district_id", lookup_expr="in")
-    status = django_filters.BooleanFilter(field_name="is_active", label="Holat")
+    is_closed = django_filters.BooleanFilter(
+        field_name="is_closed", label="Yopilgan"
+    )
     start_date = django_filters.DateFilter(
         field_name="created_at", lookup_expr="gte", label="Yaratilgan sana (dan)"
     )
@@ -25,7 +27,7 @@ class BranchFilter(django_filters.FilterSet):
             "organization",
             "region",
             "district",
-            "status",
+            "is_closed",
             "start_date",
             "end_date",
         ]

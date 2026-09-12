@@ -5,9 +5,20 @@ from apps.base.models import BaseModel
 
 class Employee(BaseModel):
 
+    organization = models.ForeignKey(
+        "organization.Organization",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="employees",
+        db_index=True,
+        verbose_name="Tashkilot",
+    )
     branch = models.ForeignKey(
         "organization.Branch",
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="employees",
         db_index=True,
         verbose_name="Filial",

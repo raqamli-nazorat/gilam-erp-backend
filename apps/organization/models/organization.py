@@ -34,11 +34,26 @@ class Organization(BaseModel):
     prefix = models.CharField(
         max_length=255, blank=True, default="", verbose_name="Prefiks"
     )
+    is_suspended = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="To'xtatilgan",
+        help_text="Tashkilot faoliyati to'xtatilganligi holati",
+    )
+    suspension_reason = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="To'xtatilish sababi",
+    )
 
     class Meta:
         db_table = "organization_organization"
         verbose_name = "Tashkilot"
         verbose_name_plural = "Tashkilotlar"
+        permissions = [
+            ("suspend_organization", "Tashkilotni to'xtatish"),
+            ("activate_organization", "Tashkilotni faollashtirish"),
+        ]
 
     def __str__(self):
         return self.name

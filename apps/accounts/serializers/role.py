@@ -20,6 +20,8 @@ SYSTEM_APP_LABELS = {
 SYSTEM_PERMISSIONS = {
     "organization.add_organization",
     "organization.delete_organization",
+    "organization.suspend_organization",
+    "organization.activate_organization",
     "organization.add_country",
     "organization.change_country",
     "organization.delete_country",

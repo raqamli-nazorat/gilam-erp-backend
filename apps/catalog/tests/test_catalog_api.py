@@ -23,7 +23,7 @@ class CatalogReferenceAPITestCase(APITestCase):
         response = self.client.get("/api/v1/catalog/qualities/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
-        self.assertTrue(response.data["results"][0]["status"])
+        self.assertEqual(response.data["results"][0]["name"], "Lyuks")
 
     def test_create_quality_success(self):
         response = self.client.post(
@@ -46,18 +46,17 @@ class CatalogReferenceAPITestCase(APITestCase):
         self.quality.refresh_from_db()
         self.assertFalse(self.quality.is_active)
         list_response = self.client.get("/api/v1/catalog/qualities/")
-        self.assertEqual(list_response.data["count"], 1)
-        self.assertFalse(list_response.data["results"][0]["status"])
+        self.assertEqual(list_response.data["count"], 0)
 
-    def test_list_qualities_filters_by_status(self):
+    def test_list_qualities_excludes_inactive(self):
         inactive_quality = Quality.objects.create(name="Ekonom")
         inactive_quality.delete()
 
-        response = self.client.get("/api/v1/catalog/qualities/", {"status": "false"})
+        response = self.client.get("/api/v1/catalog/qualities/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = [item["name"] for item in response.data["results"]]
-        self.assertEqual(names, ["Ekonom"])
+        self.assertNotIn("Ekonom", names)
 
     def test_list_units_success(self):
         response = self.client.get("/api/v1/catalog/units/")

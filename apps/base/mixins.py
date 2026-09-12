@@ -40,6 +40,18 @@ class TenantBranchScopeMixin:
             return user.get_accessible_branches()
 
 
+        if "branch" in fields and "organization" in fields:
+            branch_ids = set()
+            if user.role and user.role.branches.exists():
+                branch_ids.update(user.role.branches.values_list("id", flat=True))
+            if user.branch_id:
+                branch_ids.add(user.branch_id)
+            if branch_ids:
+                return qs.filter(
+                    organization_id=user.organization_id, branch_id__in=branch_ids
+                )
+            return qs.filter(organization_id=user.organization_id)
+
         if "branch" in fields:
             accessible_branch_ids = user.get_accessible_branches().values_list(
                 "id", flat=True

@@ -10,7 +10,7 @@ from ..serializers import UnitSerializer
 
 class UnitViewSet(BaseManageViewSet):
 
-    queryset = Unit.objects.all()
+    queryset = Unit.objects.active()
     serializer_class = UnitSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = UnitFilter

@@ -10,7 +10,7 @@ from ..serializers import ProductColorSerializer
 
 class ProductColorViewSet(BaseManageViewSet):
 
-    queryset = ProductColor.objects.all()
+    queryset = ProductColor.objects.active()
     serializer_class = ProductColorSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ProductColorFilter
