@@ -10,7 +10,6 @@ class OrganizationFilter(django_filters.FilterSet):
     inn = django_filters.CharFilter(lookup_expr="icontains")
     region = UUIDInFilter(field_name="region_id", lookup_expr="in")
     district = UUIDInFilter(field_name="district_id", lookup_expr="in")
-    status = django_filters.BooleanFilter(field_name="is_active", label="Holat")
     branches_count_min = django_filters.NumberFilter(
         field_name="branches_count", lookup_expr="gte", label="Filiallar soni (dan)"
     )
@@ -31,7 +30,6 @@ class OrganizationFilter(django_filters.FilterSet):
             "inn",
             "region",
             "district",
-            "status",
             "branches_count_min",
             "branches_count_max",
             "start_date",

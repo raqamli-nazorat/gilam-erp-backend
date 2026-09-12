@@ -14,7 +14,7 @@ from ..services import get_branch_status_counts
 
 class BranchViewSet(BaseManageViewSet):
 
-    queryset = Branch.objects.select_related(
+    queryset = Branch.objects.active().select_related(
         "organization", "region", "district"
     ).annotate(
         warehouses_count=Count(

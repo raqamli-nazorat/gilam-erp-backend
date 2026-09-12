@@ -110,18 +110,16 @@ class OrganizationAPITestCase(APITestCase):
         self.branch.refresh_from_db()
         self.assertFalse(self.branch.is_active)
         list_response = self.client.get("/api/v1/organization/branches/")
-        self.assertEqual(list_response.data["count"], 1)
-        self.assertFalse(list_response.data["results"][0]["status"])
+        self.assertEqual(list_response.data["count"], 0)
 
-    def test_list_branches_returns_status_and_warehouses_count(self):
+    def test_list_branches_returns_warehouses_count(self):
         response = self.client.get("/api/v1/organization/branches/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         result = response.data["results"][0]
-        self.assertTrue(result["status"])
         self.assertEqual(result["warehouses_count"], 0)
 
-    def test_list_branches_filters_by_status(self):
+    def test_list_branches_excludes_inactive(self):
         inactive_branch = Branch.objects.create(
             name="Yopilgan filial",
             organization=self.organization,
@@ -130,13 +128,11 @@ class OrganizationAPITestCase(APITestCase):
         )
         inactive_branch.delete()
 
-        response = self.client.get(
-            "/api/v1/organization/branches/", {"status": "false"}
-        )
+        response = self.client.get("/api/v1/organization/branches/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = [item["name"] for item in response.data["results"]]
-        self.assertEqual(names, ["Yopilgan filial"])
+        self.assertNotIn("Yopilgan filial", names)
 
     def test_branches_counts_action_returns_status_summary(self):
         inactive_branch = Branch.objects.create(
@@ -152,7 +148,7 @@ class OrganizationAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {"active": 1, "inactive": 1})
 
-    def test_retrieve_organization_success_returns_branches_count_and_status(self):
+    def test_retrieve_organization_success_returns_branches_count(self):
         inactive_branch = Branch.objects.create(
             name="Yopilgan filial",
             organization=self.organization,
@@ -167,9 +163,8 @@ class OrganizationAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["branches_count"], 1)
-        self.assertTrue(response.data["status"])
 
-    def test_list_organizations_filters_by_status(self):
+    def test_list_organizations_excludes_inactive(self):
         inactive_organization = Organization.objects.create(
             name="To'xtatilgan Tashkilot",
             inn="222222222",
@@ -178,13 +173,11 @@ class OrganizationAPITestCase(APITestCase):
         )
         inactive_organization.delete()
 
-        response = self.client.get(
-            "/api/v1/organization/organizations/", {"status": "false"}
-        )
+        response = self.client.get("/api/v1/organization/organizations/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = [item["name"] for item in response.data["results"]]
-        self.assertEqual(names, ["To'xtatilgan Tashkilot"])
+        self.assertNotIn("To'xtatilgan Tashkilot", names)
 
     def test_counts_action_returns_status_summary(self):
         inactive_organization = Organization.objects.create(

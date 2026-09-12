@@ -10,7 +10,7 @@ from ..serializers import PositionSerializer
 
 class PositionViewSet(BaseManageViewSet):
 
-    queryset = Position.objects.all()
+    queryset = Position.objects.active()
     serializer_class = PositionSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = PositionFilter

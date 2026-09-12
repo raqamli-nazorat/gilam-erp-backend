@@ -40,8 +40,7 @@ class PositionAPITestCase(APITestCase):
         self.position.refresh_from_db()
         self.assertFalse(self.position.is_active)
         list_response = self.client.get("/api/v1/hr/positions/")
-        self.assertEqual(list_response.data["count"], 1)
-        self.assertFalse(list_response.data["results"][0]["status"])
+        self.assertEqual(list_response.data["count"], 0)
 
     def test_list_positions_unauthenticated(self):
         self.client.force_authenticate(user=None)

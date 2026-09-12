@@ -9,8 +9,6 @@ from ..serializers import UserSerializer
 
 
 class UserViewSet(BaseManageViewSet):
-
-
     serializer_class = UserSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = UserFilter

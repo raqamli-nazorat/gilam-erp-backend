@@ -5,7 +5,6 @@ from ..models import Unit
 
 class UnitFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(lookup_expr="icontains")
-    status = django_filters.BooleanFilter(field_name="is_active", label="Holat")
     start_date = django_filters.DateFilter(
         field_name="created_at", lookup_expr="gte", label="Yaratilgan sana (dan)"
     )
@@ -15,4 +14,4 @@ class UnitFilter(django_filters.FilterSet):
 
     class Meta:
         model = Unit
-        fields = ["name", "status", "start_date", "end_date"]
+        fields = ["name", "start_date", "end_date"]
