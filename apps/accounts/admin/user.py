@@ -12,7 +12,7 @@ class UserAdmin(BaseModelAdmin):
         "full_name",
         "phone_number",
         "role",
-        "branch",
+        "employee",
         "is_staff",
         "is_active",
         "created_at",
@@ -21,10 +21,10 @@ class UserAdmin(BaseModelAdmin):
         "is_superuser",
         "is_active",
         "role",
-        "branch",
+        "employee__branch",
         "is_staff",
         "created_at",
     )
-    search_fields = ("full_name", "phone_number", "role__name", "branch__name")
+    search_fields = ("full_name", "phone_number", "role__name", "employee__full_name")
     ordering = ("-created_at",)
-    autocomplete_fields = ("role", "branch")
+    autocomplete_fields = ("role", "employee")

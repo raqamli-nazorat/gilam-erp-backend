@@ -10,6 +10,8 @@ class UserSerializer(BaseModelSerializer):
     password = serializers.CharField(
         write_only=True, min_length=8, style={"input_type": "password"}
     )
+    organization = serializers.SerializerMethodField(read_only=True)
+    branch = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
@@ -22,15 +24,12 @@ class UserSerializer(BaseModelSerializer):
             "organization",
             "branch",
             "employee",
-            "all_branches",
             "is_staff",
             "created_at",
             "updated_at",
         ]
         related_fields = {
             "role": {"fields": ["id", "name"]},
-            "organization": {"fields": ["id", "name"]},
-            "branch": {"fields": ["id", "name"]},
             "employee": {"fields": ["id", "full_name"]},
         }
 
@@ -39,6 +38,18 @@ class UserSerializer(BaseModelSerializer):
         if self.instance is not None:
             self.fields["password"].required = False
 
+    def get_organization(self, obj):
+        org = obj.organization
+        if org:
+            return {"id": str(org.id), "name": org.name}
+        return None
+
+    def get_branch(self, obj):
+        br = obj.branch
+        if br:
+            return {"id": str(br.id), "name": br.name}
+        return None
+
     def validate_role(self, role):
         request = self.context.get("request")
         if request and request.user and not request.user.is_system_admin:
@@ -46,24 +57,25 @@ class UserSerializer(BaseModelSerializer):
                 raise serializers.ValidationError("Ushbu rolni biriktirish huquqi yo'q.")
         return role
 
-    def validate_branch(self, branch):
-        request = self.context.get("request")
-        if request and request.user and not request.user.is_system_admin:
-            if branch:
-                accessible_ids = set(
-                    request.user.get_accessible_branches().values_list("id", flat=True)
+    def validate_employee(self, employee):
+        if employee:
+            existing_user = User.objects.filter(employee=employee)
+            if self.instance:
+                existing_user = existing_user.exclude(id=self.instance.id)
+            if existing_user.exists():
+                raise serializers.ValidationError(
+                    "Ushbu xodimga allaqachon akkaunt ochilgan."
                 )
-                if branch.id not in accessible_ids:
+
+            request = self.context.get("request")
+            if request and request.user and not request.user.is_system_admin:
+                if employee.organization_id != request.user.organization_id:
                     raise serializers.ValidationError(
-                        "Sizda ushbu filialni biriktirish huquqi yo'q."
+                        "Ushbu xodim sizning tashkilotingizga tegishli emas."
                     )
-        return branch
+        return employee
 
     def create(self, validated_data):
-        request = self.context.get("request")
-        if request and request.user and not request.user.is_system_admin:
-            validated_data["organization"] = request.user.organization
-
         password = validated_data.pop("password")
         user = User(**validated_data)
         user.set_password(password)

@@ -7,8 +7,6 @@ from ..models import ProductColor
 
 class ProductColorSerializer(BaseModelSerializer):
 
-    status = serializers.BooleanField(source="is_active", read_only=True)
-
     class Meta:
         model = ProductColor
         fields = [
@@ -16,7 +14,7 @@ class ProductColorSerializer(BaseModelSerializer):
             "name",
             "description",
             "color_hex",
-            "status",
             "created_at",
             "updated_at",
         ]
+

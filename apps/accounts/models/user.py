@@ -17,6 +17,22 @@ class UserManager(BaseUserManager.from_queryset(BaseQuerySet)):
     def create_user(self, phone_number, password=None, **extra_fields):
         if not phone_number:
             raise ValueError("Telefon raqami majburiy")
+
+        org = extra_fields.pop("organization", None)
+        branch = extra_fields.pop("branch", None)
+        employee = extra_fields.get("employee")
+
+        if org and not employee:
+            from apps.hr.models import Employee
+
+            employee = Employee.objects.create(
+                organization=org,
+                branch=branch,
+                full_name=extra_fields.get("full_name", ""),
+                phone_number=phone_number,
+            )
+            extra_fields["employee"] = employee
+
         user = self.model(phone_number=phone_number, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -51,24 +67,6 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
         related_name="users",
         verbose_name="Rol",
     )
-    organization = models.ForeignKey(
-        "organization.Organization",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="users",
-        db_index=True,
-        verbose_name="Tashkilot",
-        help_text="NULL bo'lsa tizim darajasidagi foydalanuvchi (Super Admin)",
-    )
-    branch = models.ForeignKey(
-        "organization.Branch",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="users",
-        verbose_name="Filial",
-    )
     employee = models.OneToOneField(
         "hr.Employee",
         on_delete=models.SET_NULL,
@@ -78,11 +76,6 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
         db_index=True,
         verbose_name="Xodim",
         help_text="Biriktirilgan kadrlar xodimi",
-    )
-    all_branches = models.BooleanField(
-        default=False,
-        verbose_name="Barcha filiallar",
-        help_text="Tashkilotning barcha filiallarini boshqara olish huquqi",
     )
 
     is_staff = models.BooleanField(
@@ -103,6 +96,22 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
         return f"{self.full_name} ({self.phone_number})"
 
     @property
+    def organization(self):
+        return self.employee.organization if self.employee else None
+
+    @property
+    def organization_id(self):
+        return self.employee.organization_id if self.employee else None
+
+    @property
+    def branch(self):
+        return self.employee.branch if self.employee else None
+
+    @property
+    def branch_id(self):
+        return self.employee.branch_id if self.employee else None
+
+    @property
     def is_system_admin(self):
         return self.organization_id is None
 
@@ -119,31 +128,37 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
     def has_perm(self, perm, obj=None):
         if not self.is_active:
             return False
-        if self.is_system_admin:
+        if self.is_superuser:
             return True
-        if perm in self.get_role_permissions():
+        if self.role_id and perm in self.get_role_permissions():
+            return True
+        if self.is_system_admin and not self.role_id:
             return True
         return super().has_perm(perm, obj)
 
-    def get_accessible_branches(self):
+    def get_accessible_branches(self, include_inactive=False):
         from apps.organization.models import Branch
 
+        manager = Branch.objects.all() if include_inactive else Branch.objects.active()
         if self.is_system_admin:
-            return Branch.objects.active()
+            return manager
 
         branch_ids = set()
         if self.role and self.role.branches.exists():
-            branch_ids.update(
-                self.role.branches.filter(is_active=True).values_list("id", flat=True)
+            branches_qs = (
+                self.role.branches.all()
+                if include_inactive
+                else self.role.branches.filter(is_active=True)
             )
+            branch_ids.update(branches_qs.values_list("id", flat=True))
         if self.branch_id:
             branch_ids.add(self.branch_id)
 
         if branch_ids:
-            return Branch.objects.active().filter(id__in=branch_ids)
+            return manager.filter(id__in=branch_ids)
 
         if self.organization_id:
-            return Branch.objects.active().filter(
+            return manager.filter(
                 organization_id=self.organization_id
             )
 

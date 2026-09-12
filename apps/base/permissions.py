@@ -68,7 +68,12 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
         ):
             return True
 
-        if getattr(request.user, "is_system_admin", False):
+        if getattr(request.user, "is_superuser", False):
+            return True
+
+        if getattr(request.user, "is_system_admin", False) and not getattr(
+            request.user, "role_id", None
+        ):
             return True
 
 
@@ -105,6 +110,14 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
                 user.get_accessible_branches().values_list("id", flat=True)
             )
             if obj.branch_id not in accessible_ids:
+                return False
+
+
+        if getattr(getattr(obj, "_meta", None), "model_name", None) == "branch":
+            accessible_ids = set(
+                user.get_accessible_branches(include_inactive=True).values_list("id", flat=True)
+            )
+            if obj.id not in accessible_ids:
                 return False
 
 

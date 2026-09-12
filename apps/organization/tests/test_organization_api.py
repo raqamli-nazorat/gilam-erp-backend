@@ -1,8 +1,9 @@
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.accounts.models import User
+from apps.accounts.models import Role, User
 from apps.organization.models import (
     Branch,
     Country,
@@ -110,18 +111,37 @@ class OrganizationAPITestCase(APITestCase):
         self.branch.refresh_from_db()
         self.assertFalse(self.branch.is_active)
         list_response = self.client.get("/api/v1/organization/branches/")
-        self.assertEqual(list_response.data["count"], 1)
-        self.assertFalse(list_response.data["results"][0]["status"])
+        self.assertEqual(list_response.data["count"], 0)
 
-    def test_list_branches_returns_status_and_warehouses_count(self):
+    def test_list_branches_returns_warehouses_count(self):
         response = self.client.get("/api/v1/organization/branches/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         result = response.data["results"][0]
-        self.assertTrue(result["status"])
         self.assertEqual(result["warehouses_count"], 0)
+        self.assertEqual(result["employees_count"], 0)
 
-    def test_list_branches_filters_by_status(self):
+    def test_retrieve_branch_returns_employees_and_warehouses_count(self):
+        from apps.hr.models import Employee
+        from apps.warehouse.models import Warehouse
+
+        Warehouse.objects.create(
+            branch=self.branch,
+            name="Asosiy ombor",
+        )
+        Employee.objects.create(
+            organization=self.organization,
+            branch=self.branch,
+            full_name="Filial xodimi",
+        )
+        response = self.client.get(
+            f"/api/v1/organization/branches/{self.branch.id}/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["warehouses_count"], 1)
+        self.assertEqual(response.data["employees_count"], 1)
+
+    def test_list_branches_excludes_inactive(self):
         inactive_branch = Branch.objects.create(
             name="Yopilgan filial",
             organization=self.organization,
@@ -130,29 +150,27 @@ class OrganizationAPITestCase(APITestCase):
         )
         inactive_branch.delete()
 
-        response = self.client.get(
-            "/api/v1/organization/branches/", {"status": "false"}
-        )
+        response = self.client.get("/api/v1/organization/branches/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = [item["name"] for item in response.data["results"]]
-        self.assertEqual(names, ["Yopilgan filial"])
+        self.assertNotIn("Yopilgan filial", names)
 
     def test_branches_counts_action_returns_status_summary(self):
-        inactive_branch = Branch.objects.create(
+        Branch.objects.create(
             name="Yopilgan filial",
             organization=self.organization,
             region=self.region,
             district=self.district,
+            is_closed=True,
         )
-        inactive_branch.delete()
 
         response = self.client.get("/api/v1/organization/branches/counts/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, {"active": 1, "inactive": 1})
+        self.assertEqual(response.data, {"active": 1, "closed": 1})
 
-    def test_retrieve_organization_success_returns_branches_count_and_status(self):
+    def test_retrieve_organization_success_returns_branches_count(self):
         inactive_branch = Branch.objects.create(
             name="Yopilgan filial",
             organization=self.organization,
@@ -167,9 +185,8 @@ class OrganizationAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["branches_count"], 1)
-        self.assertTrue(response.data["status"])
 
-    def test_list_organizations_filters_by_status(self):
+    def test_list_organizations_excludes_inactive(self):
         inactive_organization = Organization.objects.create(
             name="To'xtatilgan Tashkilot",
             inn="222222222",
@@ -178,13 +195,11 @@ class OrganizationAPITestCase(APITestCase):
         )
         inactive_organization.delete()
 
-        response = self.client.get(
-            "/api/v1/organization/organizations/", {"status": "false"}
-        )
+        response = self.client.get("/api/v1/organization/organizations/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = [item["name"] for item in response.data["results"]]
-        self.assertEqual(names, ["To'xtatilgan Tashkilot"])
+        self.assertNotIn("To'xtatilgan Tashkilot", names)
 
     def test_counts_action_returns_status_summary(self):
         inactive_organization = Organization.objects.create(
@@ -198,12 +213,264 @@ class OrganizationAPITestCase(APITestCase):
         response = self.client.get("/api/v1/organization/organizations/counts/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, {"active": 1, "inactive": 1})
+        self.assertEqual(response.data, {"active": 1, "suspended": 0})
 
     def test_list_unauthenticated(self):
         self.client.force_authenticate(user=None)
         response = self.client.get("/api/v1/organization/organizations/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_suspend_organization_success_by_system_admin(self):
+        response = self.client.patch(
+            f"/api/v1/organization/organizations/{self.organization.id}/suspend/",
+            {"reason": "Audit tekshiruvi"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.organization.refresh_from_db()
+        self.assertTrue(self.organization.is_active)
+        self.assertTrue(self.organization.is_suspended)
+        self.assertEqual(self.organization.suspension_reason, "Audit tekshiruvi")
+        self.assertEqual(response.data["suspension_reason"], "Audit tekshiruvi")
+
+    def test_suspend_organization_requires_reason(self):
+        response = self.client.patch(
+            f"/api/v1/organization/organizations/{self.organization.id}/suspend/",
+            {},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_activate_organization_success_by_system_admin(self):
+        self.organization.is_suspended = True
+        self.organization.suspension_reason = "Audit tekshiruvi"
+        self.organization.save()
+
+        response = self.client.patch(
+            f"/api/v1/organization/organizations/{self.organization.id}/activate/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.organization.refresh_from_db()
+        self.assertTrue(self.organization.is_active)
+        self.assertFalse(self.organization.is_suspended)
+        self.assertEqual(self.organization.suspension_reason, "")
+        self.assertEqual(response.data["suspension_reason"], "")
+
+    def test_suspend_organization_forbidden_for_regular_user(self):
+        regular_user = User.objects.create_user(
+            phone_number="+998909998877",
+            password="StrongPass123",
+            full_name="Branch Manager",
+            organization=self.organization,
+            branch=self.branch,
+        )
+        self.client.force_authenticate(regular_user)
+
+        response = self.client.patch(
+            f"/api/v1/organization/organizations/{self.organization.id}/suspend/",
+            {"reason": "Sabab"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_suspend_organization_by_system_user_with_permission(self):
+        perm = Permission.objects.get(
+            content_type__app_label="organization",
+            codename="suspend_organization",
+        )
+        role = Role.objects.create(name="Tizim Moderatori", is_system=True)
+        role.permissions.add(perm)
+
+        system_user = User.objects.create_user(
+            phone_number="+998901230001",
+            password="StrongPass123",
+            full_name="System Moderator",
+            organization=None,
+            role=role,
+            is_staff=True,
+        )
+        self.client.force_authenticate(system_user)
+
+        response = self.client.patch(
+            f"/api/v1/organization/organizations/{self.organization.id}/suspend/",
+            {"reason": "Qoidabuzarlik"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.organization.refresh_from_db()
+        self.assertTrue(self.organization.is_active)
+        self.assertTrue(self.organization.is_suspended)
+        self.assertEqual(self.organization.suspension_reason, "Qoidabuzarlik")
+
+    def test_suspend_organization_forbidden_for_system_user_without_permission(self):
+        role = Role.objects.create(name="Oddiy Tizim Foydalanuvchisi", is_system=True)
+
+        system_user = User.objects.create_user(
+            phone_number="+998901230002",
+            password="StrongPass123",
+            full_name="Restricted System User",
+            organization=None,
+            role=role,
+            is_staff=True,
+        )
+        self.client.force_authenticate(system_user)
+
+        response = self.client.patch(
+            f"/api/v1/organization/organizations/{self.organization.id}/suspend/",
+            {"reason": "Sabab"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_activate_organization_by_system_user_with_permission(self):
+        self.organization.is_suspended = True
+        self.organization.suspension_reason = "Eski sabab"
+        self.organization.save()
+
+        perm = Permission.objects.get(
+            content_type__app_label="organization",
+            codename="activate_organization",
+        )
+        role = Role.objects.create(name="Tizim Aktivatori", is_system=True)
+        role.permissions.add(perm)
+
+        system_user = User.objects.create_user(
+            phone_number="+998901230003",
+            password="StrongPass123",
+            full_name="System Activator",
+            organization=None,
+            role=role,
+            is_staff=True,
+        )
+        self.client.force_authenticate(system_user)
+
+        response = self.client.patch(
+            f"/api/v1/organization/organizations/{self.organization.id}/activate/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.organization.refresh_from_db()
+        self.assertTrue(self.organization.is_active)
+        self.assertFalse(self.organization.is_suspended)
+        self.assertEqual(self.organization.suspension_reason, "")
+
+    def test_close_branch_success_by_system_admin(self):
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/close/",
+            {"reason": "Ta'mir ishlari"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.branch.refresh_from_db()
+        self.assertTrue(self.branch.is_active)
+        self.assertTrue(self.branch.is_closed)
+        self.assertEqual(self.branch.closing_reason, "Ta'mir ishlari")
+        self.assertEqual(response.data["closing_reason"], "Ta'mir ishlari")
+
+    def test_close_branch_requires_reason(self):
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/close/",
+            {},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_open_branch_success_by_system_admin(self):
+        self.branch.is_closed = True
+        self.branch.closing_reason = "Ta'mir ishlari"
+        self.branch.save()
+
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/open/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.branch.refresh_from_db()
+        self.assertTrue(self.branch.is_active)
+        self.assertFalse(self.branch.is_closed)
+        self.assertEqual(self.branch.closing_reason, "")
+        self.assertEqual(response.data["closing_reason"], "")
+
+    def test_close_branch_by_user_with_permission(self):
+        perm = Permission.objects.get(
+            content_type__app_label="organization",
+            codename="close_branch",
+        )
+        role = Role.objects.create(
+            name="Branch Admin",
+            organization=self.organization,
+        )
+        role.permissions.add(perm)
+
+        branch_admin = User.objects.create_user(
+            phone_number="+998905554433",
+            password="StrongPass123",
+            full_name="Branch Admin User",
+            organization=self.organization,
+            branch=self.branch,
+            role=role,
+        )
+        self.client.force_authenticate(branch_admin)
+
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/close/",
+            {"reason": "Inventarizatsiya"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.branch.refresh_from_db()
+        self.assertTrue(self.branch.is_active)
+        self.assertTrue(self.branch.is_closed)
+        self.assertEqual(self.branch.closing_reason, "Inventarizatsiya")
+
+    def test_open_branch_by_user_with_permission(self):
+        self.branch.is_closed = True
+        self.branch.closing_reason = "Inventarizatsiya"
+        self.branch.save()
+
+        perm = Permission.objects.get(
+            content_type__app_label="organization",
+            codename="open_branch",
+        )
+        role = Role.objects.create(
+            name="Branch Re-opener",
+            organization=self.organization,
+        )
+        role.permissions.add(perm)
+
+        branch_admin = User.objects.create_user(
+            phone_number="+998905554434",
+            password="StrongPass123",
+            full_name="Branch Re-opener User",
+            organization=self.organization,
+            branch=self.branch,
+            role=role,
+        )
+        self.client.force_authenticate(branch_admin)
+
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/open/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.branch.refresh_from_db()
+        self.assertTrue(self.branch.is_active)
+        self.assertFalse(self.branch.is_closed)
+        self.assertEqual(self.branch.closing_reason, "")
+
+    def test_close_branch_forbidden_without_permission(self):
+        no_perm_user = User.objects.create_user(
+            phone_number="+998905554435",
+            password="StrongPass123",
+            full_name="No Perm User",
+            organization=self.organization,
+            branch=self.branch,
+        )
+        self.client.force_authenticate(no_perm_user)
+
+        response = self.client.patch(
+            f"/api/v1/organization/branches/{self.branch.id}/close/",
+            {"reason": "Sabab"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class OrganizationServiceTestCase(TestCase):
@@ -220,14 +487,17 @@ class OrganizationServiceTestCase(TestCase):
         Organization.objects.create(
             name="Faol 2", inn="444444444", region=self.region, district=self.district
         )
-        inactive_organization = Organization.objects.create(
-            name="Nofaol", inn="555555555", region=self.region, district=self.district
+        Organization.objects.create(
+            name="To'xtatilgan",
+            inn="555555555",
+            region=self.region,
+            district=self.district,
+            is_suspended=True,
         )
-        inactive_organization.delete()
 
         counts = get_organization_status_counts()
 
-        self.assertEqual(counts, {"active": 2, "inactive": 1})
+        self.assertEqual(counts, {"active": 2, "suspended": 1})
 
 
 class BranchServiceTestCase(TestCase):
@@ -250,14 +520,14 @@ class BranchServiceTestCase(TestCase):
             region=self.region,
             district=self.district,
         )
-        inactive_branch = Branch.objects.create(
+        Branch.objects.create(
             name="Yopilgan 1",
             organization=self.organization,
             region=self.region,
             district=self.district,
+            is_closed=True,
         )
-        inactive_branch.delete()
 
         counts = get_branch_status_counts()
 
-        self.assertEqual(counts, {"active": 1, "inactive": 1})
+        self.assertEqual(counts, {"active": 1, "closed": 1})

@@ -46,8 +46,7 @@ class CounterpartyTypeAPITestCase(APITestCase):
         self.counterparty_type.refresh_from_db()
         self.assertFalse(self.counterparty_type.is_active)
         list_response = self.client.get("/api/v1/finance/counterparty-types/")
-        self.assertEqual(list_response.data["count"], 1)
-        self.assertFalse(list_response.data["results"][0]["status"])
+        self.assertEqual(list_response.data["count"], 0)
 
     def test_list_counterparty_types_unauthenticated(self):
         self.client.force_authenticate(user=None)

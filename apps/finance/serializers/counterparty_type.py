@@ -7,8 +7,7 @@ from ..models import CounterpartyType
 
 class CounterpartyTypeSerializer(BaseModelSerializer):
 
-    status = serializers.BooleanField(source="is_active", read_only=True)
-
     class Meta:
         model = CounterpartyType
-        fields = ["id", "name", "status", "created_at", "updated_at"]
+        fields = ["id", "name", "created_at", "updated_at"]
+
