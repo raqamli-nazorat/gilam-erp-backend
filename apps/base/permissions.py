@@ -62,9 +62,15 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
         ):
             return False
 
+        if (
+            getattr(view, "safe_methods_unrestricted", False)
+            and request.method in permissions.SAFE_METHODS
+        ):
+            return True
 
         if getattr(request.user, "is_system_admin", False):
             return True
+
 
         queryset = self._queryset(view)
         model = queryset.model

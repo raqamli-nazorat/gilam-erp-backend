@@ -9,10 +9,11 @@ from ..serializers import DistrictSerializer
 
 
 class DistrictViewSet(BaseManageViewSet):
-
     queryset = District.objects.active().select_related("region")
     serializer_class = DistrictSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = DistrictFilter
     search_fields = ["name", "region__name"]
     ordering_fields = ["name", "created_at"]
+    safe_methods_unrestricted = True
+
