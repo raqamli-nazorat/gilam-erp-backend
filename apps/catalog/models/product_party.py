@@ -9,7 +9,6 @@ from .unit import Unit
 
 
 class ProductParty(BaseModel):
-    """Mahsulot partiyasi — omborga kirim qilingan gilamlar to'plami."""
 
     branch = models.ForeignKey(
         "organization.Branch",
@@ -54,7 +53,7 @@ class ProductParty(BaseModel):
         verbose_name="O'lchov birligi",
     )
     description = models.TextField(blank=True, default="", verbose_name="Tavsifi")
-    # unique + ixtiyoriy: bir nechta NULL ga ruxsat berish uchun null=True
+
     barcode = models.CharField(
         max_length=100,
         unique=True,
@@ -82,5 +81,4 @@ class ProductParty(BaseModel):
         verbose_name_plural = "Mahsulot partiyalari"
 
     def __str__(self):
-        """Partiya nomi va raqamini qaytaradi."""
         return f"{self.name} ({self.party_number})" if self.party_number else self.name

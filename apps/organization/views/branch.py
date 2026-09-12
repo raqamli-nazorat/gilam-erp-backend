@@ -13,7 +13,6 @@ from ..services import get_branch_status_counts
 
 
 class BranchViewSet(BaseManageViewSet):
-    """Filiallar uchun CRUD ViewSet."""
 
     queryset = Branch.objects.select_related(
         "organization", "region", "district"
@@ -30,5 +29,4 @@ class BranchViewSet(BaseManageViewSet):
 
     @action(detail=False, methods=["get"])
     def counts(self, request):
-        """Faol va yopilgan filiallar sonini qaytaradi."""
         return Response(get_branch_status_counts())

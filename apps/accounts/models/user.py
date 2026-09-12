@@ -11,17 +11,10 @@ from .role import Role
 
 
 class UserManager(BaseUserManager.from_queryset(BaseQuerySet)):
-    """
-    User modeli uchun maxsus manager.
-
-    `BaseQuerySet` dan `active()` / `inactive()` va soft-delete metodlarini,
-    `BaseUserManager` dan `create_user` / `create_superuser` ni meros oladi.
-    """
 
     use_in_migrations = True
 
     def create_user(self, phone_number, password=None, **extra_fields):
-        """Telefon raqami va parol bilan oddiy foydalanuvchi yaratadi."""
         if not phone_number:
             raise ValueError("Telefon raqami majburiy")
         user = self.model(phone_number=phone_number, **extra_fields)
@@ -30,7 +23,6 @@ class UserManager(BaseUserManager.from_queryset(BaseQuerySet)):
         return user
 
     def create_superuser(self, phone_number, password=None, **extra_fields):
-        """To'liq huquqli superuser yaratadi."""
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
 
@@ -43,7 +35,6 @@ class UserManager(BaseUserManager.from_queryset(BaseQuerySet)):
 
 
 class User(BaseModel, AbstractBaseUser, PermissionsMixin):
-    """Tizim foydalanuvchisi — phone_number orqali tizimga kiradi."""
 
     full_name = models.CharField(max_length=255, verbose_name="F.I.Sh.")
     phone_number = models.CharField(
@@ -60,6 +51,16 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
         related_name="users",
         verbose_name="Rol",
     )
+    organization = models.ForeignKey(
+        "organization.Organization",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="users",
+        db_index=True,
+        verbose_name="Tashkilot",
+        help_text="NULL bo'lsa tizim darajasidagi foydalanuvchi (Super Admin)",
+    )
     branch = models.ForeignKey(
         "organization.Branch",
         on_delete=models.PROTECT,
@@ -68,7 +69,22 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
         related_name="users",
         verbose_name="Filial",
     )
-    # Django admin panelga kirish uchun — BaseModel dagi 4 maydondan tashqari
+    employee = models.OneToOneField(
+        "hr.Employee",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_account",
+        db_index=True,
+        verbose_name="Xodim",
+        help_text="Biriktirilgan kadrlar xodimi",
+    )
+    all_branches = models.BooleanField(
+        default=False,
+        verbose_name="Barcha filiallar",
+        help_text="Tashkilotning barcha filiallarini boshqara olish huquqi",
+    )
+
     is_staff = models.BooleanField(
         default=False, verbose_name="Xodim (admin panelga kirish)"
     )
@@ -84,5 +100,52 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = "Foydalanuvchilar"
 
     def __str__(self):
-        """Foydalanuvchi F.I.Sh. va telefon raqamini qaytaradi."""
         return f"{self.full_name} ({self.phone_number})"
+
+    @property
+    def is_system_admin(self):
+        return self.organization_id is None
+
+    def get_role_permissions(self):
+        if not self.role_id:
+            return set()
+        if not hasattr(self, "_role_perm_cache"):
+            perms = self.role.permissions.values_list(
+                "content_type__app_label", "codename"
+            )
+            self._role_perm_cache = {f"{app}.{code}" for app, code in perms}
+        return self._role_perm_cache
+
+    def has_perm(self, perm, obj=None):
+        if not self.is_active:
+            return False
+        if self.is_system_admin:
+            return True
+        if perm in self.get_role_permissions():
+            return True
+        return super().has_perm(perm, obj)
+
+    def get_accessible_branches(self):
+        from apps.organization.models import Branch
+
+        if self.is_system_admin:
+            return Branch.objects.active()
+
+        branch_ids = set()
+        if self.role and self.role.branches.exists():
+            branch_ids.update(
+                self.role.branches.filter(is_active=True).values_list("id", flat=True)
+            )
+        if self.branch_id:
+            branch_ids.add(self.branch_id)
+
+        if branch_ids:
+            return Branch.objects.active().filter(id__in=branch_ids)
+
+        if self.organization_id:
+            return Branch.objects.active().filter(
+                organization_id=self.organization_id
+            )
+
+        return Branch.objects.none()
+

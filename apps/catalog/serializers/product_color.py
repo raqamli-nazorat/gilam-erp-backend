@@ -6,7 +6,6 @@ from ..models import ProductColor
 
 
 class ProductColorSerializer(BaseModelSerializer):
-    """Mahsulot rangi uchun serializer."""
 
     status = serializers.BooleanField(source="is_active", read_only=True)
 

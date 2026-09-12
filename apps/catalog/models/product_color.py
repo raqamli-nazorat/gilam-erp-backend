@@ -4,7 +4,6 @@ from apps.base.models import BaseModel
 
 
 class ProductColor(BaseModel):
-    """Mahsulot rangi."""
 
     name = models.CharField(max_length=100, verbose_name="Nomi")
     description = models.TextField(blank=True, default="", verbose_name="Tavsifi")
@@ -18,5 +17,4 @@ class ProductColor(BaseModel):
         verbose_name_plural = "Ranglar"
 
     def __str__(self):
-        """Rang nomini qaytaradi."""
         return self.name

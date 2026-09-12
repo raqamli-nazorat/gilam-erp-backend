@@ -6,7 +6,6 @@ from ..models import Organization
 
 
 class OrganizationSerializer(BaseModelSerializer):
-    """Tashkilot uchun serializer — viloyat va tuman nested qaytariladi."""
 
     branches_count = serializers.SerializerMethodField()
     status = serializers.BooleanField(source="is_active", read_only=True)
@@ -34,7 +33,6 @@ class OrganizationSerializer(BaseModelSerializer):
         }
 
     def get_branches_count(self, obj):
-        """Tashkilotga tegishli faol filiallar sonini qaytaradi."""
         annotated = obj.__dict__.get("branches_count")
         if annotated is not None:
             return annotated

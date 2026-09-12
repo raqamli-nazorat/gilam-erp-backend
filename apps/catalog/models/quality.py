@@ -4,7 +4,6 @@ from apps.base.models import BaseModel
 
 
 class Quality(BaseModel):
-    """Gilam sifati."""
 
     name = models.CharField(max_length=100, verbose_name="Nomi")
     description = models.TextField(blank=True, default="", verbose_name="Tavsifi")
@@ -15,5 +14,4 @@ class Quality(BaseModel):
         verbose_name_plural = "Sifatlar"
 
     def __str__(self):
-        """Sifat nomini qaytaradi."""
         return self.name

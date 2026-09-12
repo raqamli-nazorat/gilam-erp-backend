@@ -6,7 +6,6 @@ from ..models import Quality
 
 
 class QualitySerializer(BaseModelSerializer):
-    """Gilam sifati uchun serializer."""
 
     status = serializers.BooleanField(source="is_active", read_only=True)
 

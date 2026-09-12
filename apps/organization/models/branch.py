@@ -8,7 +8,6 @@ from .region import Region
 
 
 class Branch(BaseModel):
-    """Filial — tashkilotning savdo nuqtasi."""
 
     organization = models.ForeignKey(
         Organization,
@@ -43,5 +42,4 @@ class Branch(BaseModel):
         verbose_name_plural = "Filiallar"
 
     def __str__(self):
-        """Filial nomini qaytaradi."""
         return self.name

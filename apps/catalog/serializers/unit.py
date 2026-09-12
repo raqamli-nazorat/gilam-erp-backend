@@ -6,7 +6,6 @@ from ..models import Unit
 
 
 class UnitSerializer(BaseModelSerializer):
-    """O'lchov birligi uchun serializer."""
 
     status = serializers.BooleanField(source="is_active", read_only=True)
 

@@ -9,7 +9,6 @@ from ..serializers import CountrySerializer
 
 
 class CountryViewSet(BaseManageViewSet):
-    """Davlatlar uchun CRUD ViewSet."""
 
     queryset = Country.objects.active()
     serializer_class = CountrySerializer
