@@ -9,7 +9,6 @@ from ..serializers import CounterpartyTypeSerializer
 
 
 class CounterpartyTypeViewSet(BaseManageViewSet):
-    """Kontragent turlari uchun CRUD ViewSet."""
 
     queryset = CounterpartyType.objects.all()
     serializer_class = CounterpartyTypeSerializer

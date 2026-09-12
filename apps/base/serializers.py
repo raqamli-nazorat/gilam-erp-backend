@@ -1,28 +1,9 @@
-"""
-Bazaviy serializer va dinamik qisqa serializer generatsiya qilish mexanizmlari.
-
-Ushbu modul bog'liq modellarni avtomatik o'rab olish (related_fields) va
-birlamchi maydonlarni boshqarish imkonini beruvchi BaseModelSerializer'ni taqdim etadi.
-"""
-
 from rest_framework import serializers
 
 
 class BaseModelSerializer(serializers.ModelSerializer):
-    """
-    Barcha model serializer'lari uchun bazaviy klass.
-
-    Xususiyatlari:
-        - `is_active` maydonini tashqariga oshkor qilmaydi.
-        - `id`, `created_at`, `updated_at` maydonlarini faqat o'qish uchun qiladi.
-        - `Meta.related_fields` orqali bog'langan modellar ma'lumotlarini `field_info` sifatida dinamik qo'shadi.
-        - View orqali `serializer_fields` berilgan bo'lsa, faqat kerakli maydonlarni qoldiradi.
-    """
 
     def __init__(self, *args, **kwargs):
-        """
-        Serializer initsializatsiyasi jarayonida maydonlar va bog'liq modellarni moslashtiradi.
-        """
         super().__init__(*args, **kwargs)
 
         if "is_active" in self.fields:
@@ -114,9 +95,6 @@ class BaseModelSerializer(serializers.ModelSerializer):
                 self.fields.pop(field_name)
 
     def to_representation(self, instance):
-        """
-        Obyekt reprezentatsiyasini (ko'rinishini) qaytarishda tartibni moslashtiradi.
-        """
         ret = super().to_representation(instance)
 
         if "created_at" in ret:
@@ -131,18 +109,6 @@ class BaseModelSerializer(serializers.ModelSerializer):
 def get_short_serializer(
     model_class, fields=None, exclude=None, nested_related_fields=None
 ):
-    """
-    Model uchun dinamik ravishda qisqartirilgan serializer klassini (ShortSerializer) yaratadi.
-
-    Args:
-        model_class (Model): Django modeli.
-        fields (list | str, optional): Serializer ichidagi maydonlar.
-        exclude (list, optional): Istisno qilinadigan maydonlar.
-        nested_related_fields (dict, optional): Ichki bog'liq maydonlar.
-
-    Returns:
-        type[BaseModelSerializer]: Yaratilgan dinamik serializer klassi.
-    """
     _fields = fields or "__all__" if not exclude else None
     _exclude = exclude
     _related_fields = nested_related_fields or {}

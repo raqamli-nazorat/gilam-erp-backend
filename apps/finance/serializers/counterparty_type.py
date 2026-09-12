@@ -6,7 +6,6 @@ from ..models import CounterpartyType
 
 
 class CounterpartyTypeSerializer(BaseModelSerializer):
-    """Kontragent turi uchun serializer."""
 
     status = serializers.BooleanField(source="is_active", read_only=True)
 

@@ -4,7 +4,6 @@ from ..models import District
 
 
 class DistrictSerializer(BaseModelSerializer):
-    """Tuman uchun serializer — `region` yoziladi, `region_info` qaytadi."""
 
     class Meta:
         model = District

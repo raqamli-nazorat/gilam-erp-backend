@@ -7,7 +7,6 @@ from .position import Position
 
 
 class RecruitmentDismissal(BaseModel):
-    """Ishga olish / ishdan bo'shatish hujjati."""
 
     class Type(models.TextChoices):
         RECRUITMENT = "recruitment", "Ishga olish"
@@ -93,5 +92,4 @@ class RecruitmentDismissal(BaseModel):
         verbose_name_plural = "Ishga olish / bo'shatishlar"
 
     def __str__(self):
-        """Xodim va hujjat turini qaytaradi."""
         return f"{self.employee} — {self.get_type_display()}"

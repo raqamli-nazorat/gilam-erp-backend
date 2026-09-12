@@ -6,7 +6,6 @@ from .country import Country
 
 
 class Region(BaseModel):
-    """Viloyat — davlatga bog'liq."""
 
     name = models.CharField(max_length=255, verbose_name="Nomi")
     country = models.ForeignKey(
@@ -23,5 +22,4 @@ class Region(BaseModel):
         verbose_name_plural = "Viloyatlar"
 
     def __str__(self):
-        """Viloyat nomini qaytaradi."""
         return self.name

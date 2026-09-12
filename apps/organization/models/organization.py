@@ -7,7 +7,6 @@ from .region import Region
 
 
 class Organization(BaseModel):
-    """Tashkilot — yuridik shaxs."""
 
     name = models.CharField(max_length=255, verbose_name="Nomi")
     inn = models.CharField(max_length=20, unique=True, verbose_name="INN")
@@ -42,5 +41,4 @@ class Organization(BaseModel):
         verbose_name_plural = "Tashkilotlar"
 
     def __str__(self):
-        """Tashkilot nomini qaytaradi."""
         return self.name

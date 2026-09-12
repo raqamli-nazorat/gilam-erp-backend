@@ -9,7 +9,6 @@ from ..serializers import PositionSerializer
 
 
 class PositionViewSet(BaseManageViewSet):
-    """Lavozimlar uchun CRUD ViewSet."""
 
     queryset = Position.objects.all()
     serializer_class = PositionSerializer

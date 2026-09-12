@@ -9,7 +9,6 @@ from ..serializers import UnitSerializer
 
 
 class UnitViewSet(BaseManageViewSet):
-    """O'lchov birliklari uchun CRUD ViewSet."""
 
     queryset = Unit.objects.all()
     serializer_class = UnitSerializer

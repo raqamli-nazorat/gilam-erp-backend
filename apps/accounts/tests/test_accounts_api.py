@@ -1,9 +1,3 @@
-"""
-Accounts app CRUD endpointlari uchun API testlari.
-
-`UserSerializer` da parolni hash qilish va yangilash mantig'i alohida tekshiriladi.
-"""
-
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -11,10 +5,8 @@ from apps.accounts.models import Role, User
 
 
 class RoleAPITestCase(APITestCase):
-    """Role endpointlari testi."""
 
     def setUp(self):
-        """Superuser tayyorlaydi va autentifikatsiya qiladi."""
         self.user = User.objects.create_superuser(
             phone_number="+998900000001",
             password="StrongPass123",
@@ -23,7 +15,6 @@ class RoleAPITestCase(APITestCase):
         self.client.force_authenticate(self.user)
 
     def test_create_role_success(self):
-        """POST /roles/ — 201."""
         response = self.client.post(
             "/api/v1/accounts/roles/", {"name": "Sotuvchi"}, format="json"
         )
@@ -31,24 +22,38 @@ class RoleAPITestCase(APITestCase):
         self.assertTrue(Role.objects.filter(name="Sotuvchi").exists())
 
     def test_list_roles_success(self):
-        """GET /roles/ — 200."""
         Role.objects.create(name="Kassir")
         response = self.client.get("/api/v1/accounts/roles/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
 
     def test_list_unauthenticated(self):
-        """Autentifikatsiyasiz so'rov — 401."""
         self.client.force_authenticate(user=None)
         response = self.client.get("/api/v1/accounts/roles/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class UserAPITestCase(APITestCase):
-    """User endpointlari va parol mantig'i testi."""
+class PermissionAPITestCase(APITestCase):
 
     def setUp(self):
-        """Superuser va rol tayyorlaydi."""
+        self.user = User.objects.create_superuser(
+            phone_number="+998900000099",
+            password="StrongPass123",
+            full_name="Admin",
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_list_permissions_grouped(self):
+        response = self.client.get("/api/v1/accounts/permissions/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(response.data, dict)
+
+        self.assertTrue(len(response.data.keys()) > 0)
+
+
+class UserAPITestCase(APITestCase):
+
+    def setUp(self):
         self.admin = User.objects.create_superuser(
             phone_number="+998900000002",
             password="StrongPass123",
@@ -58,7 +63,6 @@ class UserAPITestCase(APITestCase):
         self.role = Role.objects.create(name="Sotuvchi")
 
     def test_create_user_hashes_password(self):
-        """POST /users/ — 201, parol javobda ko'rinmaydi va hash qilinadi."""
         response = self.client.post(
             "/api/v1/accounts/users/",
             {
@@ -77,7 +81,6 @@ class UserAPITestCase(APITestCase):
         self.assertTrue(created.check_password("SecretPass123"))
 
     def test_create_user_invalid_data(self):
-        """POST /users/ — qisqa parol (min 8) bo'lsa 400."""
         response = self.client.post(
             "/api/v1/accounts/users/",
             {
@@ -90,7 +93,6 @@ class UserAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_update_user_changes_password(self):
-        """PATCH /users/{id}/ — yangi parol berilsa qayta hash qilinadi."""
         target = User.objects.create_user(
             phone_number="+998911222333",
             password="OldPass123",
@@ -106,7 +108,6 @@ class UserAPITestCase(APITestCase):
         self.assertTrue(target.check_password("BrandNew123"))
 
     def test_update_user_without_password_success(self):
-        """PATCH /users/{id}/ — parolsiz yangilash mumkin (200)."""
         target = User.objects.create_user(
             phone_number="+998911444555",
             password="OldPass123",
@@ -123,7 +124,46 @@ class UserAPITestCase(APITestCase):
         self.assertTrue(target.check_password("OldPass123"))
 
     def test_list_users_unauthenticated(self):
-        """Autentifikatsiyasiz so'rov — 401."""
         self.client.force_authenticate(user=None)
         response = self.client.get("/api/v1/accounts/users/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_user_accessible_branches_combines_role_and_user_branch(self):
+        from apps.organization.models import Branch, Country, District, Organization, Region
+
+        country = Country.objects.create(name="Uzbekistan")
+        region = Region.objects.create(name="Toshkent", country=country)
+        district = District.objects.create(name="Chilonzor", region=region)
+
+        org = Organization.objects.create(
+            name="Test Org",
+            inn="999888777",
+            region=region,
+            district=district,
+        )
+        b1 = Branch.objects.create(
+            name="Branch 1", organization=org, region=region, district=district
+        )
+        b2 = Branch.objects.create(
+            name="Branch 2", organization=org, region=region, district=district
+        )
+        b3 = Branch.objects.create(
+            name="Branch 3", organization=org, region=region, district=district
+        )
+
+        role = Role.objects.create(name="Multi Branch Role", organization=org)
+        role.branches.set([b1, b2])
+
+        user = User.objects.create_user(
+            phone_number="+998909998877",
+            password="Password123",
+            full_name="Branch User",
+            organization=org,
+            role=role,
+            branch=b3,
+        )
+
+        accessible = set(user.get_accessible_branches().values_list("id", flat=True))
+        self.assertEqual(accessible, {b1.id, b2.id, b3.id})
+
+

@@ -6,7 +6,6 @@ from .employee import Employee
 
 
 class EmployeeLedger(BaseModel):
-    """Xodim harakatlari daftari — ishga olish, bo'shatish, lavozim o'zgarishi."""
 
     class Type(models.TextChoices):
         RECRUITMENT = "recruitment", "Ishga olish"
@@ -40,5 +39,4 @@ class EmployeeLedger(BaseModel):
         verbose_name_plural = "Xodim daftari yozuvlari"
 
     def __str__(self):
-        """Xodim va harakat turini qaytaradi."""
         return f"{self.employee} — {self.get_type_display()}"
