@@ -20,6 +20,15 @@ SYSTEM_APP_LABELS = {
 SYSTEM_PERMISSIONS = {
     "organization.add_organization",
     "organization.delete_organization",
+    "organization.add_country",
+    "organization.change_country",
+    "organization.delete_country",
+    "organization.add_region",
+    "organization.change_region",
+    "organization.delete_region",
+    "organization.add_district",
+    "organization.change_district",
+    "organization.delete_district",
 }
 
 
@@ -66,13 +75,13 @@ class RoleSerializer(BaseModelSerializer):
             content_type__app_label__in=SYSTEM_APP_LABELS
         )
         if not is_system_admin:
-            perms = perms.exclude(
-                Q(
-                    content_type__app_label="organization",
-                    codename__in=["add_organization", "delete_organization"],
-                )
-            )
+            system_q = Q()
+            for sys_perm in SYSTEM_PERMISSIONS:
+                app, code = sys_perm.split(".")
+                system_q |= Q(content_type__app_label=app, codename=code)
+            perms = perms.exclude(system_q)
         return PermissionSerializer(perms, many=True).data
+
 
     def validate_permissions(self, permissions):
         request = self.context.get("request")
