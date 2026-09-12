@@ -246,6 +246,8 @@ class PermissionAndScopeTestCase(APITestCase):
         forbidden_system_codenames = [
             "add_organization",
             "delete_organization",
+            "suspend_organization",
+            "activate_organization",
             "add_country",
             "change_country",
             "delete_country",
@@ -282,6 +284,34 @@ class PermissionAndScopeTestCase(APITestCase):
             {
                 "name": "Hacker Role",
                 "permissions": [add_country_perm.id],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_tenant_cannot_create_role_with_suspend_organization_perm(self):
+        add_role_perm = Permission.objects.get(
+            content_type__app_label="accounts", codename="add_role"
+        )
+        self.org1_role.permissions.add(add_role_perm)
+
+        user = User.objects.create_user(
+            phone_number="+998901110010",
+            password="Password123",
+            full_name="Tenant Admin 3",
+            organization=self.org1,
+            role=self.org1_role,
+        )
+        self.client.force_authenticate(user)
+
+        suspend_perm = Permission.objects.get(
+            content_type__app_label="organization", codename="suspend_organization"
+        )
+        response = self.client.post(
+            "/api/v1/accounts/roles/",
+            {
+                "name": "Suspend Role",
+                "permissions": [suspend_perm.id],
             },
             format="json",
         )

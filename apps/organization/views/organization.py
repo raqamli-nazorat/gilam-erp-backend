@@ -2,7 +2,6 @@ from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 
@@ -26,15 +25,10 @@ class OrganizationViewSet(BaseManageViewSet):
     filterset_class = OrganizationFilter
     search_fields = ["name", "inn", "phone", "director"]
     ordering_fields = ["name", "created_at"]
-
-    def get_queryset(self):
-        if self.action in ["suspend", "activate"]:
-            return Organization.objects.all().select_related("region", "district").annotate(
-                branches_count=Count(
-                    "branches", filter=Q(branches__is_active=True), distinct=True
-                )
-            )
-        return super().get_queryset()
+    action_permissions = {
+        "suspend": ["organization.suspend_organization"],
+        "activate": ["organization.activate_organization"],
+    }
 
     @action(detail=False, methods=["get"])
     def counts(self, request):
@@ -42,16 +36,25 @@ class OrganizationViewSet(BaseManageViewSet):
 
     @action(detail=True, methods=["patch"])
     def suspend(self, request, pk=None):
-        if not getattr(request.user, "is_system_admin", False):
-            raise PermissionDenied("Faqat tizim administratori tashkilotni to'xtata oladi.")
+        reason = request.data.get("reason") or request.data.get("suspension_reason")
+        if not reason or not str(reason).strip():
+            return Response(
+                {"reason": ["To'xtatish sababini kiritish majburiy."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         organization = self.get_object()
-        organization.is_active = False
-        organization.save(update_fields=["is_active", "updated_at"])
+        organization.is_suspended = True
+        organization.suspension_reason = str(reason).strip()
+        organization.save(
+            update_fields=["is_suspended", "suspension_reason", "updated_at"]
+        )
         return Response(
             {
                 "id": str(organization.id),
                 "name": organization.name,
-                "is_active": organization.is_active,
+                "is_suspended": organization.is_suspended,
+                "suspension_reason": organization.suspension_reason,
                 "detail": "Tashkilot faoliyati to'xtatildi.",
             },
             status=status.HTTP_200_OK,
@@ -59,16 +62,18 @@ class OrganizationViewSet(BaseManageViewSet):
 
     @action(detail=True, methods=["patch"])
     def activate(self, request, pk=None):
-        if not getattr(request.user, "is_system_admin", False):
-            raise PermissionDenied("Faqat tizim administratori tashkilotni faollashtira oladi.")
         organization = self.get_object()
-        organization.is_active = True
-        organization.save(update_fields=["is_active", "updated_at"])
+        organization.is_suspended = False
+        organization.suspension_reason = ""
+        organization.save(
+            update_fields=["is_suspended", "suspension_reason", "updated_at"]
+        )
         return Response(
             {
                 "id": str(organization.id),
                 "name": organization.name,
-                "is_active": organization.is_active,
+                "is_suspended": organization.is_suspended,
+                "suspension_reason": organization.suspension_reason,
                 "detail": "Tashkilot faoliyati faollashtirildi.",
             },
             status=status.HTTP_200_OK,

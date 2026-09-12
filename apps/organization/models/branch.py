@@ -35,6 +35,17 @@ class Branch(BaseModel):
         verbose_name="Tuman",
     )
     address = models.TextField(blank=True, default="", verbose_name="Manzil")
+    is_closed = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Yopilgan",
+        help_text="Filial yopilganligi holati",
+    )
+    closing_reason = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Yopilish sababi",
+    )
 
     class Meta:
         db_table = "organization_branch"

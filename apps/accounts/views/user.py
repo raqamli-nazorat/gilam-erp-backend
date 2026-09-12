@@ -20,8 +20,8 @@ class UserViewSet(BaseManageViewSet):
         if not user.is_authenticated:
             return User.objects.none()
         qs = User.objects.active().select_related(
-            "role", "organization", "branch", "employee"
+            "role", "employee__organization", "employee__branch"
         )
         if user.is_system_admin:
             return qs
-        return qs.filter(organization=user.organization)
+        return qs.filter(employee__organization=user.organization)

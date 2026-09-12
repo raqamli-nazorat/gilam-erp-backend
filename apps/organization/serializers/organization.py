@@ -21,10 +21,13 @@ class OrganizationSerializer(BaseModelSerializer):
             "district",
             "address",
             "prefix",
+            "is_suspended",
+            "suspension_reason",
             "branches_count",
             "created_at",
             "updated_at",
         ]
+        read_only_fields = ["is_suspended", "suspension_reason"]
 
         related_fields = {
             "region": {"fields": ["id", "name"]},

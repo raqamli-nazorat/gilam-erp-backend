@@ -68,7 +68,12 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
         ):
             return True
 
-        if getattr(request.user, "is_system_admin", False):
+        if getattr(request.user, "is_superuser", False):
+            return True
+
+        if getattr(request.user, "is_system_admin", False) and not getattr(
+            request.user, "role_id", None
+        ):
             return True
 
 

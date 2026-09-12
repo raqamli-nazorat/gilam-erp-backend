@@ -19,7 +19,6 @@ def get_user_auth_payload(user: User) -> dict:
         "full_name": user.full_name,
         "phone_number": user.phone_number,
         "is_system_admin": user.is_system_admin,
-        "all_branches": user.all_branches,
         "role": (
             {"id": str(user.role.id), "name": user.role.name}
             if user.role
@@ -84,7 +83,7 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
         try:
             user = (
                 User.objects.active()
-                .select_related("role", "organization", "branch", "employee")
+                .select_related("role", "employee__organization", "employee__branch")
                 .get(id=user_id)
             )
             data["user"] = get_user_auth_payload(user)
