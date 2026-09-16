@@ -4,7 +4,6 @@ from apps.base.models import BaseModel
 
 
 class Warehouse(BaseModel):
-
     branch = models.ForeignKey(
         "organization.Branch",
         on_delete=models.PROTECT,

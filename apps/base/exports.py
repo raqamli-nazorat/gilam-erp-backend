@@ -60,7 +60,6 @@ def _build_excel(model, ids, selected_fields):
 
 
 class ExportExcelMixin:
-
     change_list_template = "admin/export_excel_changelist.html"
 
     def get_urls(self):

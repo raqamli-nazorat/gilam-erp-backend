@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 
 from apps.base.serializers import BaseModelSerializer
@@ -6,7 +7,6 @@ from ..models import RecruitmentDismissal
 
 
 class RecruitmentDismissalSerializer(BaseModelSerializer):
-
     class Meta:
         model = RecruitmentDismissal
         fields = [
@@ -54,10 +54,7 @@ class RecruitmentDismissalSerializer(BaseModelSerializer):
                     {"branch": ["Filial sizning tashkilotingizga tegishli emas."]}
                 )
         elif (
-            branch
-            and employee
-            and employee.organization_id
-            and branch.organization_id
+            branch and employee and employee.organization_id and branch.organization_id
         ):
             if employee.organization_id != branch.organization_id:
                 raise serializers.ValidationError(
@@ -69,3 +66,27 @@ class RecruitmentDismissalSerializer(BaseModelSerializer):
                 )
 
         return attrs
+
+
+class RecruitmentDismissalBulkCreateSerializer(serializers.Serializer):
+    """Bir nechta xodimni bitta so'rovda ishga olish/bo'shatish uchun."""
+
+    items = RecruitmentDismissalSerializer(many=True)
+
+    def validate_items(self, value):
+        """Ro'yxat bo'sh bo'lmasligini tekshiradi."""
+        if not value:
+            raise serializers.ValidationError(
+                "Kamida bitta xodim ma'lumoti kiritilishi kerak."
+            )
+        return value
+
+    def create(self, validated_data):
+        """Har bir yozuvni alohida saqlaydi — signal (EmployeeLedger) ishlashi uchun bulk_create ishlatilmaydi."""
+        items_data = validated_data["items"]
+        with transaction.atomic():
+            instances = [
+                RecruitmentDismissal.objects.create(**item_data)
+                for item_data in items_data
+            ]
+        return instances

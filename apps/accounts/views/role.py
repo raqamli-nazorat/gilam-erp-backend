@@ -12,8 +12,6 @@ from ..serializers import RoleSerializer
 
 
 class RoleViewSet(BaseManageViewSet):
-
-
     serializer_class = RoleSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = RoleFilter
@@ -47,9 +45,7 @@ class RoleViewSet(BaseManageViewSet):
             permissions_count=Coalesce(
                 Subquery(perms_subq, output_field=IntegerField()), 0
             ),
-            users_count=Coalesce(
-                Subquery(users_subq, output_field=IntegerField()), 0
-            ),
+            users_count=Coalesce(Subquery(users_subq, output_field=IntegerField()), 0),
         ).select_related("organization")
 
         if self.action != "list":

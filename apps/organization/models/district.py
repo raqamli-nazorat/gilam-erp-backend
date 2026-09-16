@@ -6,7 +6,6 @@ from .region import Region
 
 
 class District(BaseModel):
-
     region = models.ForeignKey(
         Region,
         on_delete=models.PROTECT,

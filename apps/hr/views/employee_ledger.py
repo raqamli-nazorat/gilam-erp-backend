@@ -9,10 +9,7 @@ from ..serializers import EmployeeLedgerSerializer
 
 
 class EmployeeLedgerViewSet(BaseReadOnlyViewSet):
-    queryset = (
-        EmployeeLedger.objects.active()
-        .select_related("branch", "employee")
-    )
+    queryset = EmployeeLedger.objects.active().select_related("branch", "employee")
     serializer_class = EmployeeLedgerSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = EmployeeLedgerFilter

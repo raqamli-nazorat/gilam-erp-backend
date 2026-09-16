@@ -14,7 +14,6 @@ class CharInFilter(django_filters.BaseInFilter, django_filters.CharFilter):
 
 
 class BaseFilterSet(django_filters.FilterSet):
-
     start_date = django_filters.DateTimeFilter(
         field_name="created_at", lookup_expr="gte"
     )

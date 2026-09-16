@@ -6,7 +6,6 @@ from ..models import Employee
 
 
 class EmployeeSerializer(BaseModelSerializer):
-
     class Meta:
         model = Employee
         fields = [

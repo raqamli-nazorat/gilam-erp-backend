@@ -7,7 +7,6 @@ from apps.organization.models import Branch, Country, District, Organization, Re
 
 
 class PermissionAndScopeTestCase(APITestCase):
-
     def setUp(self):
         self.country = Country.objects.create(name="Uzbekistan")
         self.region = Region.objects.create(name="Toshkent", country=self.country)
@@ -237,7 +236,6 @@ class PermissionAndScopeTestCase(APITestCase):
         response = self.client.get("/api/v1/accounts/permissions/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-
         all_codenames = []
         for model_group, perms in response.data.items():
             for p in perms:
@@ -316,4 +314,3 @@ class PermissionAndScopeTestCase(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-

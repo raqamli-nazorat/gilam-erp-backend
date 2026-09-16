@@ -4,7 +4,6 @@ from apps.base.models import BaseModel
 
 
 class WorkSchedule(BaseModel):
-
     branch = models.ForeignKey(
         "organization.Branch",
         on_delete=models.PROTECT,
@@ -29,7 +28,6 @@ class WorkSchedule(BaseModel):
 
 
 class WorkScheduleItem(BaseModel):
-
     class DayType(models.TextChoices):
         FULL_HOLIDAY = "full_holiday", "To'liq bayram"
         PARTIAL_WORKDAY = "partial_workday", "Qisman ish kuni"

@@ -8,7 +8,6 @@ from .region import Region
 
 
 class Branch(BaseModel):
-
     organization = models.ForeignKey(
         Organization,
         on_delete=models.PROTECT,

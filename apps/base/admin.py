@@ -5,7 +5,6 @@ from .exports import ExportExcelMixin
 
 
 class BaseModelAdmin(ExportExcelMixin, ModelAdmin):
-
     def delete_model(self, request, obj):
         obj.delete()
 

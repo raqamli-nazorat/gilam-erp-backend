@@ -9,7 +9,6 @@ from ..serializers import CounterpartyTypeSerializer
 
 
 class CounterpartyTypeViewSet(BaseManageViewSet):
-
     queryset = CounterpartyType.objects.active()
     serializer_class = CounterpartyTypeSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

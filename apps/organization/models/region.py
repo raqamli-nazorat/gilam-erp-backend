@@ -6,7 +6,6 @@ from .country import Country
 
 
 class Region(BaseModel):
-
     name = models.CharField(max_length=255, verbose_name="Nomi")
     country = models.ForeignKey(
         Country,

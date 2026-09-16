@@ -6,7 +6,6 @@ from ..models import User
 
 
 class UserSerializer(BaseModelSerializer):
-
     password = serializers.CharField(
         write_only=True, min_length=8, style={"input_type": "password"}
     )
@@ -54,7 +53,9 @@ class UserSerializer(BaseModelSerializer):
         request = self.context.get("request")
         if request and request.user and not request.user.is_system_admin:
             if role and role.organization_id != request.user.organization_id:
-                raise serializers.ValidationError("Ushbu rolni biriktirish huquqi yo'q.")
+                raise serializers.ValidationError(
+                    "Ushbu rolni biriktirish huquqi yo'q."
+                )
         return role
 
     def validate_employee(self, employee):

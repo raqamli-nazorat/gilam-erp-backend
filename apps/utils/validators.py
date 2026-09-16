@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.utils.deconstruct import deconstructible
 
-
 phone_validator = RegexValidator(
     regex=r"^\+998\d{9}$",
     message="Telefon raqami noto'g'ri formatda kiritildi. Kutilgan format: '+9989012345678'. Uzunligi aynan 13 ta belgi bo'lishi shart.",
@@ -12,7 +11,6 @@ phone_validator = RegexValidator(
 
 
 class ComplexPasswordValidator:
-
     def validate(self, password, user=None):
         if not re.findall(r"[A-Z]", password):
             raise ValidationError(
@@ -41,7 +39,6 @@ class ComplexPasswordValidator:
 
 @deconstructible
 class FileSizeValidator:
-
     def __init__(self, max_size_mb):
         self.max_size_mb = max_size_mb
 

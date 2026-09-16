@@ -10,9 +10,7 @@ from ..serializers import WorkScheduleSerializer
 
 class WorkScheduleViewSet(BaseManageViewSet):
     queryset = (
-        WorkSchedule.objects.active()
-        .select_related("branch")
-        .prefetch_related("items")
+        WorkSchedule.objects.active().select_related("branch").prefetch_related("items")
     )
     serializer_class = WorkScheduleSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

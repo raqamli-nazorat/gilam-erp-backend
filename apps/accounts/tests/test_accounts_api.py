@@ -5,7 +5,6 @@ from apps.accounts.models import Role, User
 
 
 class RoleAPITestCase(APITestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser(
             phone_number="+998900000001",
@@ -34,7 +33,6 @@ class RoleAPITestCase(APITestCase):
 
 
 class PermissionAPITestCase(APITestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser(
             phone_number="+998900000099",
@@ -52,7 +50,6 @@ class PermissionAPITestCase(APITestCase):
 
 
 class UserAPITestCase(APITestCase):
-
     def setUp(self):
         self.admin = User.objects.create_superuser(
             phone_number="+998900000002",
@@ -129,7 +126,13 @@ class UserAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_user_accessible_branches_combines_role_and_user_branch(self):
-        from apps.organization.models import Branch, Country, District, Organization, Region
+        from apps.organization.models import (
+            Branch,
+            Country,
+            District,
+            Organization,
+            Region,
+        )
 
         country = Country.objects.create(name="Uzbekistan")
         region = Region.objects.create(name="Toshkent", country=country)
@@ -165,5 +168,3 @@ class UserAPITestCase(APITestCase):
 
         accessible = set(user.get_accessible_branches().values_list("id", flat=True))
         self.assertEqual(accessible, {b1.id, b2.id, b3.id})
-
-

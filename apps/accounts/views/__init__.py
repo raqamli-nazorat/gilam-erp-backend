@@ -5,8 +5,8 @@ from .user import UserViewSet
 
 __all__ = [
     "LoginView",
-    "RefreshTokenView",
     "PermissionViewSet",
+    "RefreshTokenView",
     "RoleViewSet",
     "UserViewSet",
 ]

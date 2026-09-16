@@ -4,22 +4,21 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0003_role_branches'),
+        ("accounts", "0003_role_branches"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='user',
-            name='branch',
+            model_name="user",
+            name="branch",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='organization',
+            model_name="user",
+            name="organization",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='all_branches',
+            model_name="user",
+            name="all_branches",
         ),
     ]

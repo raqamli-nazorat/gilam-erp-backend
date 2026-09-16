@@ -6,7 +6,6 @@ from .currency import Currency
 
 
 class AccrualRetention(BaseModel):
-
     class Type(models.TextChoices):
         PERCENT = "percent", "Foiz"
         FIX_SUMMA = "fix_summa", "Belgilangan summa"

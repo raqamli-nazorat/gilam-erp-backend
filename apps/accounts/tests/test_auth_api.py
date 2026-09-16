@@ -6,7 +6,6 @@ from apps.accounts.models import Role, User
 
 
 class LoginAPITestCase(APITestCase):
-
     def setUp(self):
         cache.clear()
         self.role = Role.objects.create(name="Sotuvchi")
@@ -60,7 +59,6 @@ class LoginAPITestCase(APITestCase):
 
 
 class TokenRefreshAPITestCase(APITestCase):
-
     def setUp(self):
         cache.clear()
         User.objects.create_user(

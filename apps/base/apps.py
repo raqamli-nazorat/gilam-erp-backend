@@ -15,7 +15,6 @@ def register_auditlog(sender, **kwargs):
 
 
 class BaseConfig(AppConfig):
-
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.base"
     verbose_name = "Baza"

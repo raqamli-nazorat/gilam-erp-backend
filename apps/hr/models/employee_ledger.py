@@ -6,7 +6,6 @@ from .employee import Employee
 
 
 class EmployeeLedger(BaseModel):
-
     class Type(models.TextChoices):
         RECRUITMENT = "recruitment", "Ishga olish"
         DISMISSAL_WORK = "dismissal_work", "Ishdan bo'shatish"

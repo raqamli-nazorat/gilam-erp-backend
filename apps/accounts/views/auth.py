@@ -1,4 +1,3 @@
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.base.mixins import AutoSchemaMixin
@@ -18,4 +17,3 @@ class LoginView(AutoSchemaMixin, ThrottleExceptionHandlerMixin, TokenObtainPairV
 
 class RefreshTokenView(AutoSchemaMixin, TokenRefreshView):
     serializer_class = RefreshTokenSerializer
-

@@ -18,7 +18,6 @@ from apps.organization.services import (
 
 
 class OrganizationAPITestCase(APITestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser(
             phone_number="+998901112233",
@@ -134,9 +133,7 @@ class OrganizationAPITestCase(APITestCase):
             branch=self.branch,
             full_name="Filial xodimi",
         )
-        response = self.client.get(
-            f"/api/v1/organization/branches/{self.branch.id}/"
-        )
+        response = self.client.get(f"/api/v1/organization/branches/{self.branch.id}/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["warehouses_count"], 1)
         self.assertEqual(response.data["employees_count"], 1)
@@ -474,7 +471,6 @@ class OrganizationAPITestCase(APITestCase):
 
 
 class OrganizationServiceTestCase(TestCase):
-
     def setUp(self):
         self.country = Country.objects.create(name="O'zbekiston")
         self.region = Region.objects.create(name="Toshkent", country=self.country)
@@ -501,7 +497,6 @@ class OrganizationServiceTestCase(TestCase):
 
 
 class BranchServiceTestCase(TestCase):
-
     def setUp(self):
         self.country = Country.objects.create(name="O'zbekiston")
         self.region = Region.objects.create(name="Toshkent", country=self.country)

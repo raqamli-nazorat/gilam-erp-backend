@@ -11,7 +11,6 @@ from .role import Role
 
 
 class UserManager(BaseUserManager.from_queryset(BaseQuerySet)):
-
     use_in_migrations = True
 
     def create_user(self, phone_number, password=None, **extra_fields):
@@ -51,7 +50,6 @@ class UserManager(BaseUserManager.from_queryset(BaseQuerySet)):
 
 
 class User(BaseModel, AbstractBaseUser, PermissionsMixin):
-
     full_name = models.CharField(max_length=255, verbose_name="F.I.Sh.")
     phone_number = models.CharField(
         max_length=50,
@@ -158,9 +156,6 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
             return manager.filter(id__in=branch_ids)
 
         if self.organization_id:
-            return manager.filter(
-                organization_id=self.organization_id
-            )
+            return manager.filter(organization_id=self.organization_id)
 
         return Branch.objects.none()
-

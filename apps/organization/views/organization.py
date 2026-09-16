@@ -14,10 +14,13 @@ from ..services import get_organization_status_counts
 
 
 class OrganizationViewSet(BaseManageViewSet):
-
-    queryset = Organization.objects.active().select_related("region", "district").annotate(
-        branches_count=Count(
-            "branches", filter=Q(branches__is_active=True), distinct=True
+    queryset = (
+        Organization.objects.active()
+        .select_related("region", "district")
+        .annotate(
+            branches_count=Count(
+                "branches", filter=Q(branches__is_active=True), distinct=True
+            )
         )
     )
     serializer_class = OrganizationSerializer

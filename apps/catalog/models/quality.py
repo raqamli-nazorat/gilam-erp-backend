@@ -4,7 +4,6 @@ from apps.base.models import BaseModel
 
 
 class Quality(BaseModel):
-
     name = models.CharField(max_length=100, verbose_name="Nomi")
     description = models.TextField(blank=True, default="", verbose_name="Tavsifi")
 

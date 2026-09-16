@@ -4,7 +4,6 @@ from apps.base.models import BaseModel
 
 
 class Employee(BaseModel):
-
     organization = models.ForeignKey(
         "organization.Organization",
         on_delete=models.PROTECT,

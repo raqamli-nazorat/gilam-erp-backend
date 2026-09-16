@@ -3,7 +3,6 @@ from rest_framework import serializers
 
 
 class PermissionSerializer(serializers.ModelSerializer):
-
     model_name = serializers.CharField(source="content_type.model", read_only=True)
     name = serializers.SerializerMethodField()
 

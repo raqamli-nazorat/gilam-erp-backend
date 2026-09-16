@@ -4,7 +4,6 @@ from ..models import District
 
 
 class DistrictSerializer(BaseModelSerializer):
-
     class Meta:
         model = District
         fields = ["id", "name", "region", "created_at", "updated_at"]

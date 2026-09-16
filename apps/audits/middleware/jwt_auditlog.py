@@ -3,7 +3,6 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
 class JWTAuditlogMiddleware(AuditlogMiddleware):
-
     def __call__(self, request):
         if (
             not hasattr(request, "user")

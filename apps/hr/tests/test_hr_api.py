@@ -1,4 +1,5 @@
 import datetime
+
 from django.contrib.auth.models import Permission
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -10,21 +11,15 @@ from apps.hr.models import (
     Position,
     RecruitmentDismissal,
     WorkSchedule,
-    WorkScheduleItem,
 )
 from apps.organization.models import Branch, Country, District, Organization, Region
 
 
 class HRBaseAPITestCase(APITestCase):
-
     def setUp(self):
         self.country = Country.objects.create(name="Uzbekistan")
-        self.region = Region.objects.create(
-            name="Toshkent", country=self.country
-        )
-        self.district = District.objects.create(
-            name="Chilonzor", region=self.region
-        )
+        self.region = Region.objects.create(name="Toshkent", country=self.country)
+        self.district = District.objects.create(name="Chilonzor", region=self.region)
 
         self.org1 = Organization.objects.create(
             name="Org 1",
@@ -105,7 +100,6 @@ class HRBaseAPITestCase(APITestCase):
 
 
 class PositionAPITestCase(APITestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser(
             phone_number="+998901112233",
@@ -148,7 +142,6 @@ class PositionAPITestCase(APITestCase):
 
 
 class EmployeeAPITestCase(HRBaseAPITestCase):
-
     def test_create_employee_as_org_user(self):
         self.client.force_authenticate(self.user_org1)
         response = self.client.post(
@@ -224,7 +217,6 @@ class EmployeeAPITestCase(HRBaseAPITestCase):
 
 
 class WorkScheduleAPITestCase(HRBaseAPITestCase):
-
     def test_create_work_schedule_with_items(self):
         self.client.force_authenticate(self.user_org1)
         data = {
@@ -284,7 +276,6 @@ class WorkScheduleAPITestCase(HRBaseAPITestCase):
 
 
 class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
-
     def setUp(self):
         super().setUp()
         self.emp1 = Employee.objects.create(
@@ -373,6 +364,103 @@ class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
             ).exists()
         )
 
+    def test_bulk_create_recruitment_success(self):
+        self.client.force_authenticate(self.user_org1)
+        emp3 = Employee.objects.create(
+            organization=self.org1,
+            branch=self.branch1,
+            full_name="Emp 3",
+        )
+        data = {
+            "items": [
+                {
+                    "type": "recruitment",
+                    "branch": str(self.branch1.id),
+                    "employee": str(self.emp1.id),
+                    "position": str(self.position.id),
+                    "card_number": "8600123456789012",
+                    "salary_type": "fixed_amount",
+                    "fix_summa": "5000000.00",
+                    "rec_dism_date": "2026-01-10",
+                },
+                {
+                    "type": "recruitment",
+                    "branch": str(self.branch1.id),
+                    "employee": str(emp3.id),
+                    "position": str(self.position.id),
+                    "card_number": "8600123456789013",
+                    "salary_type": "fixed_amount",
+                    "fix_summa": "4500000.00",
+                    "rec_dism_date": "2026-01-10",
+                },
+            ]
+        }
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/bulk-create/", data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(response.data), 2)
+        self.assertTrue(
+            RecruitmentDismissal.objects.filter(employee=self.emp1).exists()
+        )
+        self.assertTrue(RecruitmentDismissal.objects.filter(employee=emp3).exists())
+        self.assertTrue(
+            EmployeeLedger.objects.filter(
+                employee=emp3, type=EmployeeLedger.Type.RECRUITMENT
+            ).exists()
+        )
+
+    def test_bulk_create_recruitment_empty_items_invalid_data(self):
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/bulk-create/",
+            {"items": []},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_create_recruitment_one_invalid_item_rolls_back_all(self):
+        self.client.force_authenticate(self.user_org1)
+        data = {
+            "items": [
+                {
+                    "type": "recruitment",
+                    "branch": str(self.branch1.id),
+                    "employee": str(self.emp1.id),
+                    "position": str(self.position.id),
+                    "card_number": "8600123456789012",
+                    "salary_type": "fixed_amount",
+                    "fix_summa": "5000000.00",
+                    "rec_dism_date": "2026-01-10",
+                },
+                {
+                    "type": "recruitment",
+                    "branch": str(self.branch1.id),
+                    "employee": str(self.emp2.id),
+                    "position": str(self.position.id),
+                    "card_number": "8600123456789013",
+                    "salary_type": "fixed_amount",
+                    "fix_summa": "4500000.00",
+                    "rec_dism_date": "2026-01-10",
+                },
+            ]
+        }
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/bulk-create/", data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            RecruitmentDismissal.objects.filter(employee=self.emp1).exists()
+        )
+
+    def test_bulk_create_recruitment_unauthenticated(self):
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/bulk-create/",
+            {"items": []},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_create_recruitment_with_other_org_employee_fails(self):
         self.client.force_authenticate(self.user_org1)
         data = {
@@ -392,7 +480,6 @@ class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
 
 
 class EmployeeLedgerAPITestCase(HRBaseAPITestCase):
-
     def setUp(self):
         super().setUp()
         self.emp1 = Employee.objects.create(
@@ -408,9 +495,7 @@ class EmployeeLedgerAPITestCase(HRBaseAPITestCase):
             "employee": str(self.emp1.id),
             "type": "recruitment",
         }
-        response = self.client.post(
-            "/api/v1/hr/employee-ledgers/", data, format="json"
-        )
+        response = self.client.post("/api/v1/hr/employee-ledgers/", data, format="json")
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_list_employee_ledgers_scoped(self):

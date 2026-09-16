@@ -4,7 +4,6 @@ from apps.base.models import BaseModel
 
 
 class Currency(BaseModel):
-
     name = models.CharField(max_length=255, verbose_name="Nomi")
     short_name = models.CharField(max_length=255, verbose_name="Qisqa nomi")
 
@@ -18,7 +17,6 @@ class Currency(BaseModel):
 
 
 class CurrencyLedger(BaseModel):
-
     currency = models.ForeignKey(
         Currency,
         on_delete=models.PROTECT,

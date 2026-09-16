@@ -9,9 +9,8 @@ from ..serializers import EmployeeSerializer
 
 
 class EmployeeViewSet(BaseManageViewSet):
-    queryset = (
-        Employee.objects.active()
-        .select_related("organization", "branch", "region", "district")
+    queryset = Employee.objects.active().select_related(
+        "organization", "branch", "region", "district"
     )
     serializer_class = EmployeeSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

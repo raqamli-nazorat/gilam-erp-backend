@@ -6,7 +6,6 @@ from ..models import Organization
 
 
 class OrganizationSerializer(BaseModelSerializer):
-
     branches_count = serializers.SerializerMethodField()
 
     class Meta:

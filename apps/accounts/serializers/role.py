@@ -35,7 +35,6 @@ SYSTEM_PERMISSIONS = {
 
 
 class RoleSerializer(BaseModelSerializer):
-
     permissions_count = serializers.IntegerField(read_only=True)
     users_count = serializers.IntegerField(read_only=True)
     permissions_info = serializers.SerializerMethodField(read_only=True)
@@ -69,9 +68,7 @@ class RoleSerializer(BaseModelSerializer):
 
     def get_permissions_info(self, obj):
         request = self.context.get("request")
-        is_system_admin = (
-            request and request.user and request.user.is_system_admin
-        )
+        is_system_admin = request and request.user and request.user.is_system_admin
 
         perms = obj.permissions.select_related("content_type").exclude(
             content_type__app_label__in=SYSTEM_APP_LABELS
@@ -84,12 +81,9 @@ class RoleSerializer(BaseModelSerializer):
             perms = perms.exclude(system_q)
         return PermissionSerializer(perms, many=True).data
 
-
     def validate_permissions(self, permissions):
         request = self.context.get("request")
-        is_system_admin = (
-            request and request.user and request.user.is_system_admin
-        )
+        is_system_admin = request and request.user and request.user.is_system_admin
 
         if not is_system_admin:
             for perm in permissions:

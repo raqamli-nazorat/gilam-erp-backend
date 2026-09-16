@@ -2,7 +2,6 @@ from rest_framework import permissions
 
 
 class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
-
     perms_map = {
         "GET": ["%(app_label)s.view_%(model_name)s"],
         "OPTIONS": [],
@@ -18,7 +17,6 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
         if not action_name:
             return None
 
-
         action_permissions = getattr(view, "action_permissions", None)
         if isinstance(action_permissions, dict) and action_name in action_permissions:
             perms = action_permissions[action_name]
@@ -26,14 +24,12 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
                 return [perms]
             return list(perms)
 
-
         action_handler = getattr(view, action_name, None)
         if action_handler and hasattr(action_handler, "permission_required"):
             perm = action_handler.permission_required
             if isinstance(perm, (list, tuple, set)):
                 return list(perm)
             return [perm]
-
 
         app_label = model._meta.app_label
         model_name = model._meta.model_name
@@ -76,10 +72,8 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
         ):
             return True
 
-
         queryset = self._queryset(view)
         model = queryset.model
-
 
         action_name = getattr(view, "action", None)
         standard_actions = {
@@ -104,7 +98,6 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
         if getattr(user, "is_system_admin", False):
             return True
 
-
         if hasattr(obj, "branch_id") and obj.branch_id:
             accessible_ids = set(
                 user.get_accessible_branches().values_list("id", flat=True)
@@ -112,14 +105,14 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
             if obj.branch_id not in accessible_ids:
                 return False
 
-
         if getattr(getattr(obj, "_meta", None), "model_name", None) == "branch":
             accessible_ids = set(
-                user.get_accessible_branches(include_inactive=True).values_list("id", flat=True)
+                user.get_accessible_branches(include_inactive=True).values_list(
+                    "id", flat=True
+                )
             )
             if obj.id not in accessible_ids:
                 return False
-
 
         if hasattr(obj, "organization_id") and obj.organization_id:
             if obj.organization_id != user.organization_id:
@@ -129,11 +122,8 @@ class FullDjangoModelPermissions(permissions.DjangoModelPermissions):
 
 
 class IsOwnerOrStaff(permissions.BasePermission):
-
     def has_object_permission(self, request, view, obj):
-        if request.user.is_staff or getattr(
-            request.user, "is_system_admin", False
-        ):
+        if request.user.is_staff or getattr(request.user, "is_system_admin", False):
             return True
 
         if hasattr(obj, "user"):

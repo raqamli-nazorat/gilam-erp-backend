@@ -7,7 +7,6 @@ from .region import Region
 
 
 class Organization(BaseModel):
-
     name = models.CharField(max_length=255, verbose_name="Nomi")
     inn = models.CharField(max_length=20, unique=True, verbose_name="INN")
     phone = models.CharField(

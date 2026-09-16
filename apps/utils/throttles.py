@@ -12,7 +12,6 @@ UNITS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 
 
 class CustomScopedRateThrottle(ScopedRateThrottle):
-
     def parse_rate(self, rate):
         if rate is None:
             return (None, None)
@@ -61,7 +60,6 @@ class CustomScopedRateThrottle(ScopedRateThrottle):
 
 
 class ThrottleExceptionHandlerMixin:
-
     def handle_exception(self, exc):
         response = super().handle_exception(exc)
 

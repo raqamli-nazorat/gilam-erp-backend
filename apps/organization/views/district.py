@@ -16,4 +16,3 @@ class DistrictViewSet(BaseManageViewSet):
     search_fields = ["name", "region__name"]
     ordering_fields = ["name", "created_at"]
     safe_methods_unrestricted = True
-

@@ -4,38 +4,65 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('organization', '0001_initial'),
+        ("organization", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='branch',
-            options={'permissions': [('close_branch', 'Filialni yopish'), ('open_branch', 'Filialni ochish')], 'verbose_name': 'Filial', 'verbose_name_plural': 'Filiallar'},
+            name="branch",
+            options={
+                "permissions": [
+                    ("close_branch", "Filialni yopish"),
+                    ("open_branch", "Filialni ochish"),
+                ],
+                "verbose_name": "Filial",
+                "verbose_name_plural": "Filiallar",
+            },
         ),
         migrations.AlterModelOptions(
-            name='organization',
-            options={'permissions': [('suspend_organization', "Tashkilotni to'xtatish"), ('activate_organization', 'Tashkilotni faollashtirish')], 'verbose_name': 'Tashkilot', 'verbose_name_plural': 'Tashkilotlar'},
+            name="organization",
+            options={
+                "permissions": [
+                    ("suspend_organization", "Tashkilotni to'xtatish"),
+                    ("activate_organization", "Tashkilotni faollashtirish"),
+                ],
+                "verbose_name": "Tashkilot",
+                "verbose_name_plural": "Tashkilotlar",
+            },
         ),
         migrations.AddField(
-            model_name='branch',
-            name='closing_reason',
-            field=models.TextField(blank=True, default='', verbose_name='Yopilish sababi'),
+            model_name="branch",
+            name="closing_reason",
+            field=models.TextField(
+                blank=True, default="", verbose_name="Yopilish sababi"
+            ),
         ),
         migrations.AddField(
-            model_name='branch',
-            name='is_closed',
-            field=models.BooleanField(db_index=True, default=False, help_text='Filial yopilganligi holati', verbose_name='Yopilgan'),
+            model_name="branch",
+            name="is_closed",
+            field=models.BooleanField(
+                db_index=True,
+                default=False,
+                help_text="Filial yopilganligi holati",
+                verbose_name="Yopilgan",
+            ),
         ),
         migrations.AddField(
-            model_name='organization',
-            name='is_suspended',
-            field=models.BooleanField(db_index=True, default=False, help_text="Tashkilot faoliyati to'xtatilganligi holati", verbose_name="To'xtatilgan"),
+            model_name="organization",
+            name="is_suspended",
+            field=models.BooleanField(
+                db_index=True,
+                default=False,
+                help_text="Tashkilot faoliyati to'xtatilganligi holati",
+                verbose_name="To'xtatilgan",
+            ),
         ),
         migrations.AddField(
-            model_name='organization',
-            name='suspension_reason',
-            field=models.TextField(blank=True, default='', verbose_name="To'xtatilish sababi"),
+            model_name="organization",
+            name="suspension_reason",
+            field=models.TextField(
+                blank=True, default="", verbose_name="To'xtatilish sababi"
+            ),
         ),
     ]

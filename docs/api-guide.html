@@ -503,7 +503,7 @@ footer{
 
       <!-- ============ CATALOG ============ -->
       <section id="catalog">
-        <div class="section-h"><h2>Katalog (Catalog)</h2><span class="count">3 resurs</span></div>
+        <div class="section-h"><h2>Katalog (Catalog)</h2><span class="count">4 resurs</span></div>
         <p class="section-intro">Mahsulot ma'lumotnomalari &mdash; sifat, o'lchov birligi, rang. <span class="mono">Dizayn</span> va <span class="mono">Mahsulot partiyasi</span> modellari mavjud, lekin hali ViewSet/serializer yo'q &mdash; API'da ko'rinmaydi.</p>
         <div id="catalog-resources"></div>
       </section>
@@ -517,7 +517,7 @@ footer{
 
       <!-- ============ HR ============ -->
       <section id="hr">
-        <div class="section-h"><h2>HR</h2><span class="count">1 resurs</span></div>
+        <div class="section-h"><h2>HR</h2><span class="count">2 resurs</span></div>
         <p class="section-intro">Xodimlar bo'yicha ma'lumotnoma. Hozircha faqat lavozim chiqarilgan.</p>
         <div id="hr-resources"></div>
       </section>
@@ -689,6 +689,18 @@ const RESOURCES = [
     example:{id:"70819203-1425-4c5e-af60-728394051627",name:"Qizil",description:"",color_hex:"#B33A3A",status:true,created_at:"2026-02-01T09:10:00+05:00",updated_at:"2026-02-01T09:10:00+05:00"}
   },
   {
+    id:"designs", group:"catalog", title:"Dizaynlar", base:"/api/v1/catalog/designs/",
+    app:"catalog", model:"design", activeOnly:false,
+    search:["name","description","quality__name"], ordering:["name","created_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["quality","sifat UUID (bir nechta)"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["quality","uuid","Ha","Tegishli sifat id'si"],
+      ["name","string","Ha","Dizayn nomi, masalan \"Zar Gul\""],
+      ["description","string","Yo'q","Tavsif"]
+    ],
+    example:{id:"81920314-2536-4d6f-b071-839405162700",quality_info:{id:"5e6f7081-9203-4a3c-8d4e-506172839405",name:"Premium"},name:"Zar Gul",description:"An'anaviy naqsh",created_at:"2026-02-01T09:12:00+05:00",updated_at:"2026-02-01T09:12:00+05:00"}
+  },
+  {
     id:"counterparty-types", group:"finance", title:"Kontragent turlari", base:"/api/v1/finance/counterparty-types/",
     app:"finance", model:"counterpartytype", activeOnly:false,
     search:["name"], ordering:["name","created_at"],
@@ -708,6 +720,29 @@ const RESOURCES = [
       ["description","string","Yo'q","Tavsif"]
     ],
     example:{id:"81920314-2536-4d6f-b071-839405162738",name:"Sotuvchi-maslahatchi",description:"",status:true,created_at:"2026-02-01T09:15:00+05:00",updated_at:"2026-02-01T09:15:00+05:00"}
+  },
+  {
+    id:"recruitment-dismissals", group:"hr", title:"Ishga olish / bo'shatish", base:"/api/v1/hr/recruitment-dismissals/",
+    app:"hr", model:"recruitmentdismissal", activeOnly:false,
+    search:["employee__full_name","employee__phone_number","position__name","branch__name","card_number","dismissal_reason"], ordering:["rec_dism_date","created_at"],
+    filters:[["type","recruitment/dismissal"],["salary_type","fixed_amount/sales_percent/founder"],["branch","filial UUID"],["employee","xodim UUID"],["position","lavozim UUID"],["card_number","karta raqami bo'yicha (icontains)"],["rec_dism_date","hujjat sanasi (YYYY-MM-DD)"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["type","string","Ha","\"recruitment\" (ishga olish) yoki \"dismissal\" (ishdan chiqarish)"],
+      ["branch","uuid","Ha","Filial id'si"],
+      ["employee","uuid","Ha","Mavjud xodim id'si — bu endpoint xodimni o'zini yaratmaydi"],
+      ["position","uuid","Ha","Lavozim id'si"],
+      ["card_number","string","Ha","Karta raqami"],
+      ["card_image","string","Yo'q","Karta rasmi"],
+      ["salary_type","string","Ha","\"fixed_amount\", \"sales_percent\" yoki \"founder\""],
+      ["fix_summa","decimal","Yo'q","Belgilangan summa (salary_type=fixed_amount bo'lsa)"],
+      ["fix_percent","decimal","Yo'q","Belgilangan foiz (salary_type=sales_percent bo'lsa)"],
+      ["rec_dism_date","date","Ha","Hujjat sanasi, YYYY-MM-DD"],
+      ["dismissal_reason","string","Yo'q","Bo'shatish sababi (type=dismissal bo'lsa)"],
+      ["extra_summa","decimal","Yo'q","Qo'shimcha summa"],
+      ["extra_percent","decimal","Yo'q","Qo'shimcha foiz"]
+    ],
+    example:{id:"a1b2c3d4-e5f6-4708-9a0b-1c2d3e4f5062",type:"recruitment",branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},employee_info:{id:"3f2e1d0c-9b8a-4756-8d3f-2e1d0c9b8a76",full_name:"Aziz Rahimov",phone_number:"+998901112233"},position_info:{id:"81920314-2536-4d6f-b071-839405162738",name:"Sotuvchi-maslahatchi"},card_number:"8600123456789012",card_image:"",salary_type:"fixed_amount",fix_summa:"5000000.00",fix_percent:null,rec_dism_date:"2026-01-10",dismissal_reason:"",extra_summa:null,extra_percent:null,created_at:"2026-01-10T09:00:00+05:00",updated_at:"2026-01-10T09:00:00+05:00"},
+    action:{method:"POST",path:"/api/v1/hr/recruitment-dismissals/bulk-create/",title:"Ko'plab yaratish",desc:"Bir nechta xodimni bitta so'rovda ishga olish/bo'shatish. Body: {\"items\":[{...}, {...}]}. Har bir item yuqoridagi maydonlar bilan bir xil; birortasi noto'g'ri bo'lsa hech narsa saqlanmaydi (hammasi yoki hech narsa).",res:[{id:"a1b2c3d4-e5f6-4708-9a0b-1c2d3e4f5062",type:"recruitment",card_number:"8600123456789012","...":"..."},{id:"b2c3d4e5-f607-4819-ab1c-2d3e4f506173",type:"recruitment",card_number:"8600123456789013","...":"..."}]}
   }
 ];
 
@@ -716,9 +751,9 @@ const GROUPS = [
   {key:"auth", label:"Auth", links:[["auth-login","Login"],["auth-refresh","Token yangilash"]]},
   {key:"accounts", label:"Accounts", links:[["roles","Rollar"],["users","Foydalanuvchilar"]]},
   {key:"org", label:"Tashkilot", links:[["countries","Davlatlar"],["regions","Viloyatlar"],["districts","Tumanlar"],["organizations","Tashkilotlar"],["branches","Filiallar"]]},
-  {key:"catalog", label:"Katalog", links:[["qualities","Sifatlar"],["units","O'lchov birliklari"],["colors","Ranglar"]]},
+  {key:"catalog", label:"Katalog", links:[["qualities","Sifatlar"],["units","O'lchov birliklari"],["colors","Ranglar"],["designs","Dizaynlar"]]},
   {key:"finance", label:"Moliya", links:[["counterparty-types","Kontragent turlari"]]},
-  {key:"hr", label:"HR", links:[["positions","Lavozimlar"]]},
+  {key:"hr", label:"HR", links:[["positions","Lavozimlar"],["recruitment-dismissals","Ishga olish / bo'shatish"]]},
   {key:"audits", label:"Audit", links:[["audit-logs","Loglar"]]}
 ];
 

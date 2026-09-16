@@ -4,12 +4,10 @@ from apps.base.permissions import FullDjangoModelPermissions
 
 
 class DynamicPermissionMixin:
-
     permission_classes = [FullDjangoModelPermissions]
 
 
 class TenantBranchScopeMixin:
-
     def get_queryset(self):
         qs = super().get_queryset()
         request = getattr(self, "request", None)
@@ -18,13 +16,11 @@ class TenantBranchScopeMixin:
         if not user or not user.is_authenticated:
             return qs.none()
 
-
         if getattr(user, "is_system_admin", False):
             return qs
 
         model = qs.model
         fields = {f.name for f in model._meta.get_fields()}
-
 
         if (
             model._meta.app_label == "organization"
@@ -32,13 +28,11 @@ class TenantBranchScopeMixin:
         ):
             return qs.filter(id=user.organization_id)
 
-
         if (
             model._meta.app_label == "organization"
             and model._meta.model_name == "branch"
         ):
             return user.get_accessible_branches()
-
 
         if "branch" in fields and "organization" in fields:
             branch_ids = set()
@@ -58,7 +52,6 @@ class TenantBranchScopeMixin:
             )
             return qs.filter(branch_id__in=accessible_branch_ids)
 
-
         if "organization" in fields:
             return qs.filter(organization_id=user.organization_id)
 
@@ -73,11 +66,8 @@ class TenantBranchScopeMixin:
             model = serializer.Meta.model
             fields = {f.name for f in model._meta.get_fields()}
 
-
             if "organization" in fields:
                 extra_kwargs["organization"] = user.organization
-
-
 
             if "branch" in fields:
                 branch = serializer.validated_data.get("branch")
@@ -97,7 +87,6 @@ class TenantBranchScopeMixin:
 
 
 class AutoSchemaMixin:
-
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 

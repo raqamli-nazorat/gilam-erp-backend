@@ -20,9 +20,7 @@ def get_user_auth_payload(user: User) -> dict:
         "phone_number": user.phone_number,
         "is_system_admin": user.is_system_admin,
         "role": (
-            {"id": str(user.role.id), "name": user.role.name}
-            if user.role
-            else None
+            {"id": str(user.role.id), "name": user.role.name} if user.role else None
         ),
         "organization": (
             {
@@ -48,14 +46,12 @@ def get_user_auth_payload(user: User) -> dict:
         ),
         "permissions": permissions_list,
         "accessible_branches": [
-            {"id": str(b.id), "name": b.name}
-            for b in user.get_accessible_branches()
+            {"id": str(b.id), "name": b.name} for b in user.get_accessible_branches()
         ],
     }
 
 
 class LoginSerializer(TokenObtainPairSerializer):
-
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -74,7 +70,6 @@ class LoginSerializer(TokenObtainPairSerializer):
 
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
-
     def validate(self, attrs):
         data = super().validate(attrs)
         refresh = RefreshToken(attrs["refresh"])

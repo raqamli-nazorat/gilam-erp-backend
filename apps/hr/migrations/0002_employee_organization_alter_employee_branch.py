@@ -5,21 +5,37 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('hr', '0001_initial'),
-        ('organization', '0002_alter_branch_options_alter_organization_options_and_more'),
+        ("hr", "0001_initial"),
+        (
+            "organization",
+            "0002_alter_branch_options_alter_organization_options_and_more",
+        ),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='employee',
-            name='organization',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='employees', to='organization.organization', verbose_name='Tashkilot'),
+            model_name="employee",
+            name="organization",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="employees",
+                to="organization.organization",
+                verbose_name="Tashkilot",
+            ),
         ),
         migrations.AlterField(
-            model_name='employee',
-            name='branch',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='employees', to='organization.branch', verbose_name='Filial'),
+            model_name="employee",
+            name="branch",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="employees",
+                to="organization.branch",
+                verbose_name="Filial",
+            ),
         ),
     ]

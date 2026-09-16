@@ -6,7 +6,6 @@ from ..models import WorkSchedule, WorkScheduleItem
 
 
 class WorkScheduleItemSerializer(BaseModelSerializer):
-
     class Meta:
         model = WorkScheduleItem
         fields = [

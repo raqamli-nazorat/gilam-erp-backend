@@ -7,7 +7,6 @@ from .position import Position
 
 
 class RecruitmentDismissal(BaseModel):
-
     class Type(models.TextChoices):
         RECRUITMENT = "recruitment", "Ishga olish"
         DISMISSAL = "dismissal", "Ishdan chiqarish"

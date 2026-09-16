@@ -6,7 +6,6 @@ from apps.finance.models import CounterpartyType
 
 
 class CounterpartyTypeAPITestCase(APITestCase):
-
     def setUp(self):
         self.user = User.objects.create_superuser(
             phone_number="+998901112233",

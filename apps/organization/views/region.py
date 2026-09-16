@@ -16,4 +16,3 @@ class RegionViewSet(BaseManageViewSet):
     search_fields = ["name", "country__name"]
     ordering_fields = ["name", "created_at"]
     safe_methods_unrestricted = True
-

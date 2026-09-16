@@ -6,7 +6,6 @@ from ..models import Branch
 
 
 class BranchSerializer(BaseModelSerializer):
-
     warehouses_count = serializers.SerializerMethodField()
     employees_count = serializers.SerializerMethodField()
 

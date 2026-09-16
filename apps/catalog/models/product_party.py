@@ -9,7 +9,6 @@ from .unit import Unit
 
 
 class ProductParty(BaseModel):
-
     branch = models.ForeignKey(
         "organization.Branch",
         on_delete=models.PROTECT,

@@ -4,7 +4,6 @@ from ..models import Region
 
 
 class RegionSerializer(BaseModelSerializer):
-
     class Meta:
         model = Region
         fields = ["id", "name", "country", "created_at", "updated_at"]

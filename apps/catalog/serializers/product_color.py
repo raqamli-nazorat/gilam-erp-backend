@@ -1,12 +1,9 @@
-from rest_framework import serializers
-
 from apps.base.serializers import BaseModelSerializer
 
 from ..models import ProductColor
 
 
 class ProductColorSerializer(BaseModelSerializer):
-
     class Meta:
         model = ProductColor
         fields = [
@@ -17,4 +14,3 @@ class ProductColorSerializer(BaseModelSerializer):
             "created_at",
             "updated_at",
         ]
-

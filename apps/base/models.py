@@ -5,7 +5,6 @@ from django.db.models.base import ModelBase
 
 
 class BaseQuerySet(models.QuerySet):
-
     def active(self):
         return self.filter(is_active=True)
 
@@ -20,7 +19,6 @@ class BaseQuerySet(models.QuerySet):
 
 
 class BaseModelMeta(ModelBase):
-
     def __new__(mcs, name, bases, attrs):
         new_class = super().__new__(mcs, name, bases, attrs)
         if hasattr(new_class, "_meta") and not new_class._meta.abstract:
@@ -30,7 +28,6 @@ class BaseModelMeta(ModelBase):
 
 
 class BaseModel(models.Model, metaclass=BaseModelMeta):
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     is_active = models.BooleanField(
         default=True, db_index=True, verbose_name="Is Active"

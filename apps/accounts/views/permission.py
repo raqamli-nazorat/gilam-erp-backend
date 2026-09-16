@@ -9,8 +9,6 @@ from ..serializers.role import SYSTEM_APP_LABELS
 
 
 class PermissionViewSet(BaseReadOnlyViewSet):
-
-
     serializer_class = PermissionSerializer
     pagination_class = None
 
@@ -33,7 +31,6 @@ class PermissionViewSet(BaseReadOnlyViewSet):
             qs = qs.exclude(system_q)
 
         return qs
-
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

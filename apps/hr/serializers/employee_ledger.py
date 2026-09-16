@@ -4,7 +4,6 @@ from ..models import EmployeeLedger
 
 
 class EmployeeLedgerSerializer(BaseModelSerializer):
-
     class Meta:
         model = EmployeeLedger
         fields = [

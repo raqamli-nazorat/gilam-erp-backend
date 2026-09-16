@@ -6,7 +6,6 @@ from .quality import Quality
 
 
 class Design(BaseModel):
-
     quality = models.ForeignKey(
         Quality,
         on_delete=models.PROTECT,
@@ -27,7 +26,6 @@ class Design(BaseModel):
 
 
 class DesignPhoto(BaseModel):
-
     design = models.ForeignKey(
         Design,
         on_delete=models.CASCADE,

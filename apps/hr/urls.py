@@ -17,8 +17,6 @@ router.register(
     RecruitmentDismissalViewSet,
     basename="recruitment-dismissal",
 )
-router.register(
-    "employee-ledgers", EmployeeLedgerViewSet, basename="employee-ledger"
-)
+router.register("employee-ledgers", EmployeeLedgerViewSet, basename="employee-ledger")
 
 urlpatterns = router.urls

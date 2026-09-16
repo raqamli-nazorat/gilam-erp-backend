@@ -4,7 +4,6 @@ from apps.base.models import BaseModel
 
 
 class Role(BaseModel):
-
     name = models.CharField(max_length=255, verbose_name="Nomi")
     organization = models.ForeignKey(
         "organization.Organization",
