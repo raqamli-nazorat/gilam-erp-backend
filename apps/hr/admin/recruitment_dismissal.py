@@ -19,6 +19,7 @@ class RecruitmentDismissalAdmin(BaseModelAdmin):
         "fix_summa",
         "fix_percent",
         "rec_dism_date",
+        "attachment",
         "is_active",
         "created_at",
     )

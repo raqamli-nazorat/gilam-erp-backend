@@ -2,7 +2,7 @@ from django.core.cache import cache
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.accounts.models import Role, User
+from apps.accounts.models import Role, User, UserBlockLog
 
 
 class LoginAPITestCase(APITestCase):
@@ -56,6 +56,20 @@ class LoginAPITestCase(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_login_blocked_user_invalid_data(self):
+        UserBlockLog.objects.create(
+            user=self.user,
+            type=UserBlockLog.Type.BLOCK,
+            reason="Ichki tekshiruv sababli",
+        )
+        response = self.client.post(
+            "/api/v1/auth/login/",
+            {"phone_number": "+998901234567", "password": "StrongPass123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Ichki tekshiruv sababli", str(response.data))
 
 
 class TokenRefreshAPITestCase(APITestCase):

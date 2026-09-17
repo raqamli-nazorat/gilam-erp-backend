@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.accounts.models import Role, User
+from apps.accounts.models import Role, User, UserBlockLog
 
 
 class RoleAPITestCase(APITestCase):
@@ -168,3 +168,90 @@ class UserAPITestCase(APITestCase):
 
         accessible = set(user.get_accessible_branches().values_list("id", flat=True))
         self.assertEqual(accessible, {b1.id, b2.id, b3.id})
+
+
+class UserBlockAPITestCase(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            phone_number="+998900000010",
+            password="StrongPass123",
+            full_name="Admin",
+        )
+        self.target = User.objects.create_user(
+            phone_number="+998900000011",
+            password="StrongPass123",
+            full_name="Nishon Xodim",
+        )
+
+    def test_block_user_success(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(
+            f"/api/v1/accounts/users/{self.target.id}/block/",
+            {"reason": "Ichki tekshiruv sababli"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["is_blocked"])
+        self.assertTrue(
+            UserBlockLog.objects.filter(
+                user=self.target, type=UserBlockLog.Type.BLOCK
+            ).exists()
+        )
+
+    def test_block_user_missing_reason_invalid_data(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(
+            f"/api/v1/accounts/users/{self.target.id}/block/",
+            {},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_block_user_forbidden_without_permission(self):
+        role = Role.objects.create(name="Oddiy rol")
+        actor = User.objects.create_user(
+            phone_number="+998900000012",
+            password="StrongPass123",
+            full_name="Huquqsiz",
+            role=role,
+        )
+        self.client.force_authenticate(actor)
+        response = self.client.patch(
+            f"/api/v1/accounts/users/{self.target.id}/block/",
+            {"reason": "Sabab"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_unblock_user_success(self):
+        UserBlockLog.objects.create(
+            user=self.target,
+            type=UserBlockLog.Type.BLOCK,
+            reason="Sabab",
+            actor=self.admin,
+        )
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(
+            f"/api/v1/accounts/users/{self.target.id}/unblock/",
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["is_blocked"])
+        self.assertTrue(
+            UserBlockLog.objects.filter(
+                user=self.target, type=UserBlockLog.Type.UNBLOCK
+            ).exists()
+        )
+
+    def test_blocked_user_still_listed(self):
+        UserBlockLog.objects.create(
+            user=self.target,
+            type=UserBlockLog.Type.BLOCK,
+            reason="Sabab",
+            actor=self.admin,
+        )
+        self.client.force_authenticate(self.admin)
+        response = self.client.get("/api/v1/accounts/users/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [item["id"] for item in response.data["results"]]
+        self.assertIn(str(self.target.id), ids)

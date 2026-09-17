@@ -8,6 +8,7 @@ class LogEntryFilter(django_filters.FilterSet):
     actor = UUIDInFilter(field_name="actor_id", lookup_expr="in")
     content_type = NumberInFilter(field_name="content_type_id", lookup_expr="in")
     action = django_filters.ChoiceFilter(choices=LogEntry.Action.choices)
+    object_pk = django_filters.CharFilter(lookup_expr="exact")
 
     start_date = django_filters.DateFilter(
         field_name="timestamp", lookup_expr="gte", label="Vaqt (dan)"
@@ -23,6 +24,7 @@ class LogEntryFilter(django_filters.FilterSet):
             "content_type",
             "action",
             "object_id",
+            "object_pk",
             "start_date",
             "end_date",
         ]

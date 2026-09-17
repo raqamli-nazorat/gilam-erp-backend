@@ -1,10 +1,11 @@
 import datetime
 
 from django.contrib.auth.models import Permission
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.accounts.models import Role, User
+from apps.accounts.models import Role, User, UserBlockLog
 from apps.hr.models import (
     Employee,
     EmployeeLedger,
@@ -215,64 +216,340 @@ class EmployeeAPITestCase(HRBaseAPITestCase):
         response = self.client.get("/api/v1/hr/employees/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_employee_status_not_hired_default(self):
+        emp = Employee.objects.create(
+            organization=self.org1,
+            branch=self.branch1,
+            full_name="Hali Ishga Olinmagan",
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.get(f"/api/v1/hr/employees/{emp.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["employment_status"]["status"], "not_hired")
+
+    def test_employee_status_active_after_recruitment(self):
+        emp = Employee.objects.create(
+            organization=self.org1,
+            branch=self.branch1,
+            full_name="Ishga Olingan",
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789099",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.get(f"/api/v1/hr/employees/{emp.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["employment_status"]["status"], "active")
+
+    def test_employee_status_dismissed_after_dismissal(self):
+        emp = Employee.objects.create(
+            organization=self.org1,
+            branch=self.branch1,
+            full_name="Ishdan Chiqarilgan",
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789098",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.DISMISSAL,
+            branch=self.branch1,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789098",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 2, 1),
+            dismissal_reason="O'z xohishiga ko'ra",
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.get(f"/api/v1/hr/employees/{emp.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["employment_status"]["status"], "dismissed")
+        self.assertEqual(
+            response.data["employment_status"]["reason"], "O'z xohishiga ko'ra"
+        )
+
+    def test_employee_status_active_in_one_branch_despite_dismissed_in_another(self):
+        branch1b = Branch.objects.create(
+            organization=self.org1,
+            name="Branch 1B",
+            region=self.region,
+            district=self.district,
+        )
+        emp = Employee.objects.create(
+            organization=self.org1,
+            branch=self.branch1,
+            full_name="Ikki Filialda Ishlagan",
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789001",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.DISMISSAL,
+            branch=self.branch1,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789001",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 2, 1),
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=branch1b,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789002",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 5),
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.get(f"/api/v1/hr/employees/{emp.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["employment_status"]["status"], "active")
+
+    def test_employee_status_active_after_same_day_dismissal_and_rehire(self):
+        """Bir kunda bo'shatilib, keyin qayta ishga olingan xodim 'active' bo'lishi kerak."""
+        emp = Employee.objects.create(
+            organization=self.org1,
+            branch=self.branch1,
+            full_name="Bir Kunda Qayta Olingan",
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789030",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2024, 2, 14),
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.DISMISSAL,
+            branch=self.branch1,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789030",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 9, 17),
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789031",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 9, 17),
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.get(f"/api/v1/hr/employees/{emp.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["employment_status"]["status"], "active")
+
+        history_response = self.client.get(
+            f"/api/v1/hr/employees/{emp.id}/employment-history/"
+        )
+        self.assertEqual(history_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(history_response.data[0]["is_employed"])
+
+    def test_employee_counts_success(self):
+        active_emp = Employee.objects.create(
+            organization=self.org1, branch=self.branch1, full_name="Faol Xodim"
+        )
+        Employee.objects.create(
+            organization=self.org1, branch=self.branch1, full_name="Nofaol Xodim"
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=active_emp,
+            position=self.position,
+            card_number="8600123456789003",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.get("/api/v1/hr/employees/counts/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # self.user_org1 uchun ham avtomatik Employee yaratiladi (User.create_user
+        # signali), shuning uchun bazaviy 1 ta nofaol xodim allaqachon bor.
+        self.assertEqual(response.data["total"], 3)
+        self.assertEqual(response.data["active"], 1)
+        self.assertEqual(response.data["inactive"], 2)
+
+    def test_employee_filter_by_is_active(self):
+        active_emp = Employee.objects.create(
+            organization=self.org1, branch=self.branch1, full_name="Faol Xodim"
+        )
+        Employee.objects.create(
+            organization=self.org1, branch=self.branch1, full_name="Nofaol Xodim"
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=active_emp,
+            position=self.position,
+            card_number="8600123456789004",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.get("/api/v1/hr/employees/?is_active=true")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [item["id"] for item in response.data["results"]]
+        self.assertEqual(ids, [str(active_emp.id)])
+
+    def test_employee_employment_history_success(self):
+        branch1b = Branch.objects.create(
+            organization=self.org1,
+            name="Branch 1B",
+            region=self.region,
+            district=self.district,
+        )
+        emp = Employee.objects.create(
+            organization=self.org1, branch=self.branch1, full_name="Tarixli Xodim"
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789005",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=branch1b,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789006",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=4000000,
+            rec_dism_date=datetime.date(2021, 8, 3),
+        )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.DISMISSAL,
+            branch=branch1b,
+            employee=emp,
+            position=self.position,
+            card_number="8600123456789006",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=4000000,
+            rec_dism_date=datetime.date(2022, 1, 1),
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.get(f"/api/v1/hr/employees/{emp.id}/employment-history/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        by_branch = {row["branch"]["id"]: row for row in response.data}
+        self.assertTrue(by_branch[str(self.branch1.id)]["is_employed"])
+        self.assertFalse(by_branch[str(branch1b.id)]["is_employed"])
+        self.assertEqual(by_branch[str(branch1b.id)]["hired_at"], "2021-08-03")
+
+    def test_employee_employment_history_empty_for_new_employee(self):
+        emp = Employee.objects.create(
+            organization=self.org1, branch=self.branch1, full_name="Yangi Xodim"
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.get(f"/api/v1/hr/employees/{emp.id}/employment-history/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+
 
 class WorkScheduleAPITestCase(HRBaseAPITestCase):
-    def test_create_work_schedule_with_items(self):
+    def test_create_work_schedule_success(self):
         self.client.force_authenticate(self.user_org1)
         data = {
-            "branch": str(self.branch1.id),
-            "name": "2026 Q1 Schedule",
-            "from_date": "2026-01-01",
-            "to_date": "2026-03-31",
-            "from_hour": "09:00:00",
-            "to_hour": "18:00:00",
-            "items": [
-                {
-                    "name": "Ish kuni",
-                    "day_type": "full_workday",
-                    "day_date": "2026-01-02",
-                    "from_hour": "09:00:00",
-                    "to_hour": "18:00:00",
-                },
-                {
-                    "name": "Yangi yil bayrami",
-                    "day_type": "full_holiday",
-                    "day_date": "2026-01-01",
-                    "from_hour": "00:00:00",
-                    "to_hour": "00:00:00",
-                },
-            ],
+            "name": "Kechki smena",
+            "description": "14:00-23:00, Dush-Juma",
+            "from_hour": "14:00:00",
+            "to_hour": "23:00:00",
+            "is_monday": True,
+            "is_tuesday": True,
+            "is_wednesday": True,
+            "is_thursday": True,
+            "is_friday": True,
         }
         response = self.client.post("/api/v1/hr/work-schedules/", data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        schedule_id = response.data["id"]
-        schedule = WorkSchedule.objects.get(id=schedule_id)
-        self.assertEqual(schedule.items.count(), 2)
+        self.assertTrue(response.data["is_monday"])
+        self.assertFalse(response.data["is_saturday"])
+        self.assertTrue(response.data["status"])
 
-    def test_work_schedule_scoping(self):
-        ws1 = WorkSchedule.objects.create(
-            branch=self.branch1,
-            name="Org 1 Schedule",
-            from_date=datetime.date(2026, 1, 1),
-            to_date=datetime.date(2026, 1, 31),
+    def test_create_work_schedule_invalid_data(self):
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.post("/api/v1/hr/work-schedules/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_list_work_schedules_unauthenticated(self):
+        response = self.client.get("/api/v1/hr/work-schedules/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_filter_work_schedules_by_is_active(self):
+        active_ws = WorkSchedule.objects.create(
+            name="Asosiy smena",
             from_hour=datetime.time(9, 0),
             to_hour=datetime.time(18, 0),
         )
-        ws2 = WorkSchedule.objects.create(
-            branch=self.branch2,
-            name="Org 2 Schedule",
-            from_date=datetime.date(2026, 1, 1),
-            to_date=datetime.date(2026, 1, 31),
+        inactive_ws = WorkSchedule.objects.create(
+            name="Eskirgan smena",
             from_hour=datetime.time(9, 0),
             to_hour=datetime.time(18, 0),
         )
+        inactive_ws.delete()
 
         self.client.force_authenticate(self.user_org1)
-        response = self.client.get("/api/v1/hr/work-schedules/")
+        response = self.client.get("/api/v1/hr/work-schedules/?is_active=true")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         ids = [item["id"] for item in response.data["results"]]
-        self.assertIn(str(ws1.id), ids)
-        self.assertNotIn(str(ws2.id), ids)
+        self.assertIn(str(active_ws.id), ids)
+        self.assertNotIn(str(inactive_ws.id), ids)
+
+    def test_deleted_work_schedule_still_listed_as_inactive(self):
+        ws = WorkSchedule.objects.create(
+            name="O'chiriladigan smena",
+            from_hour=datetime.time(9, 0),
+            to_hour=datetime.time(18, 0),
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.delete(f"/api/v1/hr/work-schedules/{ws.id}/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        list_response = self.client.get("/api/v1/hr/work-schedules/")
+        ids = [item["id"] for item in list_response.data["results"]]
+        self.assertIn(str(ws.id), ids)
+        item = next(i for i in list_response.data["results"] if i["id"] == str(ws.id))
+        self.assertFalse(item["status"])
 
 
 class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
@@ -477,6 +754,110 @@ class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
             "/api/v1/hr/recruitment-dismissals/", data, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_dismissal_blocks_linked_user_account(self):
+        linked_user = User.objects.create_user(
+            phone_number="+998904444444",
+            password="StrongPassword123",
+            full_name="Linked User",
+            employee=self.emp1,
+        )
+        self.client.force_authenticate(self.user_org1)
+        data = {
+            "type": "dismissal",
+            "branch": str(self.branch1.id),
+            "employee": str(self.emp1.id),
+            "position": str(self.position.id),
+            "card_number": "8600123456789020",
+            "salary_type": "fixed_amount",
+            "fix_summa": "5000000.00",
+            "rec_dism_date": "2026-02-01",
+            "dismissal_reason": "Xodim ishdan bo'shadi",
+        }
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/", data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        block_log = UserBlockLog.objects.filter(
+            user=linked_user, type=UserBlockLog.Type.BLOCK
+        ).first()
+        self.assertIsNotNone(block_log)
+        self.assertEqual(block_log.reason, "Xodim ishdan bo'shadi")
+        self.assertEqual(block_log.actor, self.user_org1)
+
+    def test_recruitment_unblocks_linked_user_account(self):
+        linked_user = User.objects.create_user(
+            phone_number="+998905555555",
+            password="StrongPassword123",
+            full_name="Linked User 2",
+            employee=self.emp1,
+        )
+        UserBlockLog.objects.create(
+            user=linked_user, type=UserBlockLog.Type.BLOCK, reason="Avvalgi sabab"
+        )
+        self.client.force_authenticate(self.user_org1)
+        data = {
+            "type": "recruitment",
+            "branch": str(self.branch1.id),
+            "employee": str(self.emp1.id),
+            "position": str(self.position.id),
+            "card_number": "8600123456789021",
+            "salary_type": "fixed_amount",
+            "fix_summa": "5000000.00",
+            "rec_dism_date": "2026-03-01",
+        }
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/", data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            UserBlockLog.objects.filter(
+                user=linked_user, type=UserBlockLog.Type.UNBLOCK
+            ).exists()
+        )
+
+    def test_dismissal_without_linked_user_does_not_fail(self):
+        self.client.force_authenticate(self.user_org1)
+        data = {
+            "type": "dismissal",
+            "branch": str(self.branch1.id),
+            "employee": str(self.emp1.id),
+            "position": str(self.position.id),
+            "card_number": "8600123456789022",
+            "salary_type": "fixed_amount",
+            "fix_summa": "5000000.00",
+            "rec_dism_date": "2026-02-01",
+            "dismissal_reason": "Sabab",
+        }
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/", data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(UserBlockLog.objects.exists())
+
+    def test_create_dismissal_with_attachment_success(self):
+        self.client.force_authenticate(self.user_org1)
+        attachment = SimpleUploadedFile(
+            "buyruq.pdf", b"%PDF-1.4 fake content", content_type="application/pdf"
+        )
+        data = {
+            "type": "dismissal",
+            "branch": str(self.branch1.id),
+            "employee": str(self.emp1.id),
+            "position": str(self.position.id),
+            "card_number": "8600123456789023",
+            "salary_type": "fixed_amount",
+            "fix_summa": "5000000.00",
+            "rec_dism_date": "2026-02-01",
+            "dismissal_reason": "O'z xohishiga ko'ra",
+            "attachment": attachment,
+        }
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/", data, format="multipart"
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        record = RecruitmentDismissal.objects.get(card_number="8600123456789023")
+        self.assertTrue(record.attachment.name.endswith(".pdf"))
 
 
 class EmployeeLedgerAPITestCase(HRBaseAPITestCase):

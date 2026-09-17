@@ -517,8 +517,8 @@ footer{
 
       <!-- ============ HR ============ -->
       <section id="hr">
-        <div class="section-h"><h2>HR</h2><span class="count">2 resurs</span></div>
-        <p class="section-intro">Xodimlar bo'yicha ma'lumotnoma. Hozircha faqat lavozim chiqarilgan.</p>
+        <div class="section-h"><h2>HR</h2><span class="count">4 resurs</span></div>
+        <p class="section-intro">Xodimlar, lavozimlar, ishga olish/bo'shatish tarixi va ish grafiklari (smena shablonlari). <span class="mono">Xodim daftari</span> (<span class="mono">/api/v1/hr/employee-ledgers/</span>) endpointi ham mavjud, lekin hozircha shu hujjatga qo'shilmagan.</p>
         <div id="hr-resources"></div>
       </section>
 
@@ -711,6 +711,32 @@ const RESOURCES = [
     example:{id:"92031425-3647-4e70-c182-940516273849",name:"Yetkazib beruvchi",status:true,created_at:"2026-02-01T09:20:00+05:00",updated_at:"2026-02-01T09:20:00+05:00"}
   },
   {
+    id:"employees", group:"hr", title:"Xodimlar", base:"/api/v1/hr/employees/",
+    app:"hr", model:"employee", activeOnly:false,
+    search:["full_name","phone_number","passport_seria","passport_number","jsshr","stir","address"], ordering:["full_name","created_at"],
+    filters:[["full_name","F.I.Sh. bo'yicha (icontains)"],["phone_number","telefon bo'yicha (icontains)"],["passport_seria","passport seriyasi bo'yicha (icontains)"],["passport_number","passport raqami bo'yicha (icontains)"],["jsshr","JSHSHIR bo'yicha (icontains)"],["stir","STIR bo'yicha (icontains)"],["organization","tashkilot UUID"],["branch","filial UUID"],["region","viloyat UUID"],["district","tuman UUID"],["is_active","true/false — joriy ish holati (Faol/Nofaol), RecruitmentDismissal tarixidan hisoblanadi, hujjat holatiga bog'liq emas"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["full_name","string","Ha","F.I.Sh."],
+      ["phone_number","string","Yo'q","Telefon raqami"],
+      ["passport_seria","string","Yo'q","Passport seriyasi"],
+      ["passport_number","string","Yo'q","Passport raqami"],
+      ["jsshr","string","Yo'q","JSHSHIR"],
+      ["stir","string","Yo'q","STIR"],
+      ["organization","uuid","Yo'q*","Tashkilot id'si — *system admin uchun majburiy, oddiy foydalanuvchida avtomatik o'z tashkilotidan olinadi"],
+      ["branch","uuid","Yo'q","Filial id'si — tanlangan tashkilotga tegishli bo'lishi shart"],
+      ["region","uuid","Yo'q","Viloyat id'si"],
+      ["district","uuid","Yo'q","Tuman id'si — tanlangan viloyatga tegishli bo'lishi shart"],
+      ["address","string","Yo'q","Manzil"],
+      ["description","string","Yo'q","Izoh"]
+    ],
+    example:{id:"5e6f7081-9203-4a3c-8d4e-506172839410",organization_info:{id:"92031425-3647-4e70-c182-940516273801",name:"SAG Glamlari"},branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Registon filiali"},full_name:"Salmonov Sardor",region_info:{id:"a1b2c3d4-e5f6-4708-9a0b-1c2d3e4f5001",name:"Samarqand"},district_info:{id:"b2c3d4e5-f607-4819-ab1c-2d3e4f506102",name:"Samarqand shahri"},address:"Registon ko'chasi, 24-uy",passport_seria:"AA",passport_number:"1234567",jsshr:"31402198540012",stir:"302145678",phone_number:"+998901234567",description:"Asosiy ish joyi",employment_status:{status:"active",label:"Faol",date:"2024-02-14",reason:""},created_at:"2024-02-14T10:24:00+05:00",updated_at:"2026-01-12T21:48:00+05:00"},
+    extraNote:"<span class=\"mono\">employment_status</span> — hisoblanadigan maydon (model'da saqlanmaydi): xodim <span class=\"mono\">ixtiyoriy bitta filialda</span> hozir ishlab tursa <span class=\"mono\">active</span> (Faol), hech qachon ishga olinmagan bo'lsa <span class=\"mono\">not_hired</span>, hammasidan bo'shatilgan bo'lsa <span class=\"mono\">dismissed</span>. Manba — <span class=\"mono\">Ishga olish / bo'shatish</span> tarixi.",
+    actions:[
+      {method:"GET",path:"/api/v1/hr/employees/counts/",desc:"Xodimlar bo'yicha umumiy/faol/nofaol sonlarni qaytaradi (joriy filtr/qidiruv/scope parametrlariga mos holda).",res:{total:342,active:335,inactive:7}},
+      {method:"GET",path:"/api/v1/hr/employees/{id}/employment-history/",desc:"Xodimning filiallar bo'yicha ish tarixi — har bir filial uchun so'nggi ishga olish (lavozim, sana) va joriy holati (Faol/Nofaol).",res:[{organization:{id:"92031425-3647-4e70-c182-940516273801",name:"SAG Glamlari"},branch:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Registon filiali"},position:{id:"81920314-2536-4d6f-b071-839405162738",name:"Direktor"},hired_at:"2024-02-14",is_employed:true},{organization:{id:"92031425-3647-4e70-c182-940516273801",name:"SAG Glamlari"},branch:{id:"a3b4c5d6-e7f8-4910-bc2d-3e4f50617283",name:"Chilonzor filiali"},position:{id:"a1b2c3d4-e5f6-4708-9a0b-1c2d3e4f5062",name:"Menejer"},hired_at:"2021-08-03",is_employed:false}]}
+    ]
+  },
+  {
     id:"positions", group:"hr", title:"Lavozimlar", base:"/api/v1/hr/positions/",
     app:"hr", model:"position", activeOnly:false,
     search:["name","description"], ordering:["name","created_at"],
@@ -739,10 +765,33 @@ const RESOURCES = [
       ["rec_dism_date","date","Ha","Hujjat sanasi, YYYY-MM-DD"],
       ["dismissal_reason","string","Yo'q","Bo'shatish sababi (type=dismissal bo'lsa)"],
       ["extra_summa","decimal","Yo'q","Qo'shimcha summa"],
-      ["extra_percent","decimal","Yo'q","Qo'shimcha foiz"]
+      ["extra_percent","decimal","Yo'q","Qo'shimcha foiz"],
+      ["attachment","file","Yo'q","Asos hujjat — PDF yoki Excel (.xls/.xlsx), 10 MB gacha. Multipart so'rov bilan yuboriladi"]
     ],
-    example:{id:"a1b2c3d4-e5f6-4708-9a0b-1c2d3e4f5062",type:"recruitment",branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},employee_info:{id:"3f2e1d0c-9b8a-4756-8d3f-2e1d0c9b8a76",full_name:"Aziz Rahimov",phone_number:"+998901112233"},position_info:{id:"81920314-2536-4d6f-b071-839405162738",name:"Sotuvchi-maslahatchi"},card_number:"8600123456789012",card_image:"",salary_type:"fixed_amount",fix_summa:"5000000.00",fix_percent:null,rec_dism_date:"2026-01-10",dismissal_reason:"",extra_summa:null,extra_percent:null,created_at:"2026-01-10T09:00:00+05:00",updated_at:"2026-01-10T09:00:00+05:00"},
+    example:{id:"a1b2c3d4-e5f6-4708-9a0b-1c2d3e4f5062",type:"recruitment",branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},employee_info:{id:"3f2e1d0c-9b8a-4756-8d3f-2e1d0c9b8a76",full_name:"Aziz Rahimov",phone_number:"+998901112233"},position_info:{id:"81920314-2536-4d6f-b071-839405162738",name:"Sotuvchi-maslahatchi"},card_number:"8600123456789012",card_image:"",salary_type:"fixed_amount",fix_summa:"5000000.00",fix_percent:null,rec_dism_date:"2026-01-10",dismissal_reason:"",extra_summa:null,extra_percent:null,attachment:null,created_at:"2026-01-10T09:00:00+05:00",updated_at:"2026-01-10T09:00:00+05:00"},
+    extraNote:"<span class=\"mono\">type=\"dismissal\"</span> yaratilsa va xodimning tizim akkaunti (<span class=\"mono\">accounts.User</span>) bo'lsa — akkaunt avtomatik bloklanadi (kirish yopiladi). <span class=\"mono\">type=\"recruitment\"</span> yaratilganda, agar xodim hozir bloklangan bo'lsa — avtomatik blokdan chiqadi. Qarang: <a href=\"#users\">Foydalanuvchilar</a>.",
     action:{method:"POST",path:"/api/v1/hr/recruitment-dismissals/bulk-create/",title:"Ko'plab yaratish",desc:"Bir nechta xodimni bitta so'rovda ishga olish/bo'shatish. Body: {\"items\":[{...}, {...}]}. Har bir item yuqoridagi maydonlar bilan bir xil; birortasi noto'g'ri bo'lsa hech narsa saqlanmaydi (hammasi yoki hech narsa).",res:[{id:"a1b2c3d4-e5f6-4708-9a0b-1c2d3e4f5062",type:"recruitment",card_number:"8600123456789012","...":"..."},{id:"b2c3d4e5-f607-4819-ab1c-2d3e4f506173",type:"recruitment",card_number:"8600123456789013","...":"..."}]}
+  },
+  {
+    id:"work-schedules", group:"hr", title:"Ish grafiklari", base:"/api/v1/hr/work-schedules/",
+    app:"hr", model:"workschedule", activeOnly:false,
+    search:["name","description"], ordering:["name","created_at","updated_at"],
+    filters:[["name","nomi bo'yicha (icontains)"],["is_active","true/false — Holati: Faol/Nofaol"],["start_date / end_date","yaratilgan sana oralig'i"],["updated_start_date / updated_end_date","o'zgartirilgan sana oralig'i"]],
+    writeFields:[
+      ["name","string","Ha","Smena nomi, masalan \"Kechki smena\""],
+      ["description","string","Yo'q","Tavsif, masalan \"14:00-23:00, Dush-Juma\""],
+      ["from_hour","time","Ha","Boshlanish vaqti, HH:MM:SS"],
+      ["to_hour","time","Ha","Tugash vaqti, HH:MM:SS"],
+      ["is_monday","bool","Yo'q","Dushanba kuni ishlaydimi"],
+      ["is_tuesday","bool","Yo'q","Seshanba kuni ishlaydimi"],
+      ["is_wednesday","bool","Yo'q","Chorshanba kuni ishlaydimi"],
+      ["is_thursday","bool","Yo'q","Payshanba kuni ishlaydimi"],
+      ["is_friday","bool","Yo'q","Juma kuni ishlaydimi"],
+      ["is_saturday","bool","Yo'q","Shanba kuni ishlaydimi"],
+      ["is_sunday","bool","Yo'q","Yakshanba kuni ishlaydimi"]
+    ],
+    example:{id:"6f7081a2-3849-4506-9172-839405162839",name:"Kechki smena",description:"14:00-23:00, Dush-Juma",from_hour:"14:00:00",to_hour:"23:00:00",is_monday:true,is_tuesday:true,is_wednesday:true,is_thursday:true,is_friday:true,is_saturday:false,is_sunday:false,status:true,created_at:"2024-01-12T09:28:00+05:00",updated_at:"2026-08-19T10:42:00+05:00"},
+    extraNote:"Bu resurs filialga bog'lanmagan — qayta ishlatiladigan smena shabloni. <span class=\"mono\">status</span> — <span class=\"mono\">is_active</span>ning ochiq ko'rinishi (Holati: Faol/Nofaol); o'chirilgan (soft-delete) yozuvlar ro'yxatdan yo'qolmaydi, <span class=\"mono\">status:false</span> bilan qoladi."
   }
 ];
 
@@ -753,7 +802,7 @@ const GROUPS = [
   {key:"org", label:"Tashkilot", links:[["countries","Davlatlar"],["regions","Viloyatlar"],["districts","Tumanlar"],["organizations","Tashkilotlar"],["branches","Filiallar"]]},
   {key:"catalog", label:"Katalog", links:[["qualities","Sifatlar"],["units","O'lchov birliklari"],["colors","Ranglar"],["designs","Dizaynlar"]]},
   {key:"finance", label:"Moliya", links:[["counterparty-types","Kontragent turlari"]]},
-  {key:"hr", label:"HR", links:[["positions","Lavozimlar"],["recruitment-dismissals","Ishga olish / bo'shatish"]]},
+  {key:"hr", label:"HR", links:[["employees","Xodimlar"],["positions","Lavozimlar"],["recruitment-dismissals","Ishga olish / bo'shatish"],["work-schedules","Ish grafiklari"]]},
   {key:"audits", label:"Audit", links:[["audit-logs","Loglar"]]}
 ];
 
@@ -866,6 +915,8 @@ function renderResource(r, container){
     ? `<span class="badge-note">Soft-delete: ro'yxatdan yo'qoladi</span>`
     : `<span class="badge-note">Soft-delete: status=false, ro'yxatda qoladi</span>`;
 
+  const actions = r.actions || (r.action ? [r.action] : []);
+
   card.innerHTML = `
     <div class="card-h"><h3>${esc(r.title)}</h3></div>
     <p class="card-base">${esc(r.base)}</p>
@@ -882,17 +933,19 @@ function renderResource(r, container){
     <div class="sub-h">Javob namunasi (bitta obyekt)</div>
     <div class="codeblock"><pre id="ex-${r.id}"></pre><button class="copy-btn" data-target="ex-${r.id}">nusxa</button></div>
     ${r.extraNote ? `<div class="note">${r.extraNote}</div>` : ''}
-    ${r.action ? `
-      <div class="sub-h">Maxsus amal</div>
+    ${actions.length ? `
+      <div class="sub-h">Maxsus amal${actions.length > 1 ? 'lar' : ''}</div>
       <div class="table-wrap"><table><thead><tr><th>Metod</th><th>Yo'l</th><th>Tavsif</th></tr></thead><tbody>
-        <tr><td><span class="method m-get">${r.action.method}</span></td><td class="path">${esc(r.action.path)}</td><td>${esc(r.action.desc)}</td></tr>
+        ${actions.map(a => `<tr><td><span class="method m-${a.method.toLowerCase()}">${a.method}</span></td><td class="path">${esc(a.path)}</td><td>${esc(a.desc)}</td></tr>`).join('')}
       </tbody></table></div>
-      <div class="codeblock" style="margin-top:8px;"><pre id="ex-${r.id}-action"></pre><button class="copy-btn" data-target="ex-${r.id}-action">nusxa</button></div>
+      ${actions.map((a, i) => `<div class="codeblock" style="margin-top:8px;"><pre id="ex-${r.id}-action${i}"></pre><button class="copy-btn" data-target="ex-${r.id}-action${i}">nusxa</button></div>`).join('')}
     ` : ''}
   `;
   container.appendChild(card);
   document.getElementById(`ex-${r.id}`).textContent = j(r.example);
-  if (r.action) document.getElementById(`ex-${r.id}-action`).textContent = j(r.action.res);
+  actions.forEach((a, i) => {
+    document.getElementById(`ex-${r.id}-action${i}`).textContent = j(a.res);
+  });
 }
 
 const WRAP_BY_GROUP = {

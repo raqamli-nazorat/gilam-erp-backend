@@ -1,6 +1,8 @@
+from django.core.validators import FileExtensionValidator
 from django.db import models
 
 from apps.base.models import BaseModel
+from apps.utils.validators import FileSizeValidator
 
 from .employee import Employee
 from .position import Position
@@ -83,6 +85,17 @@ class RecruitmentDismissal(BaseModel):
         null=True,
         blank=True,
         verbose_name="Qo'shimcha foiz",
+    )
+    attachment = models.FileField(
+        upload_to="hr/recruitment_dismissals/%Y/%m/",
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(["pdf", "xls", "xlsx"]),
+            FileSizeValidator(max_size_mb=10),
+        ],
+        verbose_name="Asos hujjat",
+        help_text="Ishga olish/bo'shatish uchun asos bo'lgan hujjat (PDF yoki Excel, 10 MB gacha)",
     )
 
     class Meta:

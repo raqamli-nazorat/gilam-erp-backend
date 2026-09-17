@@ -1,4 +1,5 @@
 from django.contrib.auth.models import update_last_login
+from rest_framework import serializers
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
@@ -6,6 +7,7 @@ from rest_framework_simplejwt.serializers import (
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from ..models import User
+from ..services import get_latest_block_log, is_user_blocked
 
 
 def get_user_auth_payload(user: User) -> dict:
@@ -63,6 +65,14 @@ class LoginSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         user = self.user
+
+        if is_user_blocked(user):
+            block_log = get_latest_block_log(user)
+            reason = block_log.reason if block_log and block_log.reason else ""
+            detail = "Hisobingiz bloklangan."
+            if reason:
+                detail += f" Sabab: {reason}"
+            raise serializers.ValidationError({"detail": detail})
 
         update_last_login(None, user)
         data["user"] = get_user_auth_payload(user)

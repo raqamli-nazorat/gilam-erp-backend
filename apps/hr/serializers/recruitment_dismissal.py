@@ -24,6 +24,7 @@ class RecruitmentDismissalSerializer(BaseModelSerializer):
             "dismissal_reason",
             "extra_summa",
             "extra_percent",
+            "attachment",
             "created_at",
             "updated_at",
         ]
@@ -67,6 +68,14 @@ class RecruitmentDismissalSerializer(BaseModelSerializer):
 
         return attrs
 
+    def create(self, validated_data):
+        """`_actor`ni saqlashdan oldin belgilaydi — signal orqali User blok/unblok uchun."""
+        instance = RecruitmentDismissal(**validated_data)
+        request = self.context.get("request")
+        instance._actor = getattr(request, "user", None) if request else None
+        instance.save()
+        return instance
+
 
 class RecruitmentDismissalBulkCreateSerializer(serializers.Serializer):
     """Bir nechta xodimni bitta so'rovda ishga olish/bo'shatish uchun."""
@@ -84,9 +93,13 @@ class RecruitmentDismissalBulkCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         """Har bir yozuvni alohida saqlaydi — signal (EmployeeLedger) ishlashi uchun bulk_create ishlatilmaydi."""
         items_data = validated_data["items"]
+        request = self.context.get("request")
+        actor = getattr(request, "user", None) if request else None
+        instances = []
         with transaction.atomic():
-            instances = [
-                RecruitmentDismissal.objects.create(**item_data)
-                for item_data in items_data
-            ]
+            for item_data in items_data:
+                instance = RecruitmentDismissal(**item_data)
+                instance._actor = actor
+                instance.save()
+                instances.append(instance)
         return instances

@@ -3,9 +3,20 @@ from rest_framework import serializers
 from apps.base.serializers import BaseModelSerializer
 
 from ..models import Employee
+from ..services import build_employment_status
 
 
 class EmployeeSerializer(BaseModelSerializer):
+    employment_status = serializers.SerializerMethodField(read_only=True)
+
+    def get_employment_status(self, obj):
+        return build_employment_status(
+            getattr(obj, "is_employed", False),
+            getattr(obj, "latest_status_type", None),
+            getattr(obj, "latest_status_date", None),
+            getattr(obj, "latest_status_reason", None),
+        )
+
     class Meta:
         model = Employee
         fields = [
@@ -22,6 +33,7 @@ class EmployeeSerializer(BaseModelSerializer):
             "stir",
             "phone_number",
             "description",
+            "employment_status",
             "created_at",
             "updated_at",
         ]

@@ -89,6 +89,10 @@ class User(BaseModel, AbstractBaseUser, PermissionsMixin):
         db_table = "accounts_user"
         verbose_name = "Foydalanuvchi"
         verbose_name_plural = "Foydalanuvchilar"
+        permissions = [
+            ("block_user", "Foydalanuvchini bloklash"),
+            ("unblock_user", "Foydalanuvchini blokdan chiqarish"),
+        ]
 
     def __str__(self):
         return f"{self.full_name} ({self.phone_number})"

@@ -2,7 +2,7 @@ from .employee import EmployeeAdmin
 from .employee_ledger import EmployeeLedgerAdmin
 from .position import PositionAdmin
 from .recruitment_dismissal import RecruitmentDismissalAdmin
-from .work_schedule import WorkScheduleAdmin, WorkScheduleItemAdmin
+from .work_schedule import WorkScheduleAdmin
 
 __all__ = [
     "EmployeeAdmin",
@@ -10,5 +10,4 @@ __all__ = [
     "PositionAdmin",
     "RecruitmentDismissalAdmin",
     "WorkScheduleAdmin",
-    "WorkScheduleItemAdmin",
 ]

@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from apps.base.serializers import BaseModelSerializer
 
-from ..models import User
+from ..models import User, UserBlockLog
 
 
 class UserSerializer(BaseModelSerializer):
@@ -11,6 +11,10 @@ class UserSerializer(BaseModelSerializer):
     )
     organization = serializers.SerializerMethodField(read_only=True)
     branch = serializers.SerializerMethodField(read_only=True)
+    is_blocked = serializers.SerializerMethodField(read_only=True)
+    blocked_reason = serializers.SerializerMethodField(read_only=True)
+    blocked_at = serializers.SerializerMethodField(read_only=True)
+    blocked_by = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
@@ -24,6 +28,10 @@ class UserSerializer(BaseModelSerializer):
             "branch",
             "employee",
             "is_staff",
+            "is_blocked",
+            "blocked_reason",
+            "blocked_at",
+            "blocked_by",
             "created_at",
             "updated_at",
         ]
@@ -47,6 +55,24 @@ class UserSerializer(BaseModelSerializer):
         br = obj.branch
         if br:
             return {"id": str(br.id), "name": br.name}
+        return None
+
+    def get_is_blocked(self, obj):
+        return getattr(obj, "latest_block_type", None) == UserBlockLog.Type.BLOCK
+
+    def get_blocked_reason(self, obj):
+        if self.get_is_blocked(obj):
+            return getattr(obj, "latest_block_reason", "") or ""
+        return None
+
+    def get_blocked_at(self, obj):
+        if self.get_is_blocked(obj):
+            return getattr(obj, "latest_block_at", None)
+        return None
+
+    def get_blocked_by(self, obj):
+        if self.get_is_blocked(obj):
+            return getattr(obj, "latest_block_actor_name", None)
         return None
 
     def validate_role(self, role):

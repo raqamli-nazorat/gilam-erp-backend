@@ -20,6 +20,9 @@ class EmployeeFilter(django_filters.FilterSet):
     end_date = django_filters.DateFilter(
         field_name="created_at", lookup_expr="lte", label="Yaratilgan sana (gacha)"
     )
+    is_active = django_filters.BooleanFilter(
+        field_name="is_employed", label="Holat (Faol/Nofaol)"
+    )
 
     class Meta:
         model = Employee
@@ -36,4 +39,5 @@ class EmployeeFilter(django_filters.FilterSet):
             "district",
             "start_date",
             "end_date",
+            "is_active",
         ]
