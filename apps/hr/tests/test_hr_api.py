@@ -494,16 +494,11 @@ class WorkScheduleAPITestCase(HRBaseAPITestCase):
             "description": "14:00-23:00, Dush-Juma",
             "from_hour": "14:00:00",
             "to_hour": "23:00:00",
-            "is_monday": True,
-            "is_tuesday": True,
-            "is_wednesday": True,
-            "is_thursday": True,
-            "is_friday": True,
+            "days": [0, 1, 2, 3, 4],
         }
         response = self.client.post("/api/v1/hr/work-schedules/", data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(response.data["is_monday"])
-        self.assertFalse(response.data["is_saturday"])
+        self.assertEqual(response.data["days"], [0, 1, 2, 3, 4])
         self.assertTrue(response.data["status"])
 
     def test_create_work_schedule_invalid_data(self):
@@ -618,20 +613,23 @@ class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
         )
 
     def test_dismissal_triggers_employee_ledger(self):
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=self.emp1,
+            position=self.position,
+            card_number="8600123456789012",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
         self.client.force_authenticate(self.user_org1)
         data = {
-            "type": "dismissal",
-            "branch": str(self.branch1.id),
             "employee": str(self.emp1.id),
-            "position": str(self.position.id),
-            "card_number": "8600123456789012",
-            "salary_type": "fixed_amount",
-            "fix_summa": "5000000.00",
-            "rec_dism_date": "2026-02-01",
             "dismissal_reason": "O'z xohishiga ko'ra",
         }
         response = self.client.post(
-            "/api/v1/hr/recruitment-dismissals/", data, format="json"
+            "/api/v1/hr/recruitment-dismissals/dismiss/", data, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(
@@ -762,20 +760,23 @@ class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
             full_name="Linked User",
             employee=self.emp1,
         )
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=self.emp1,
+            position=self.position,
+            card_number="8600123456789020",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
         self.client.force_authenticate(self.user_org1)
         data = {
-            "type": "dismissal",
-            "branch": str(self.branch1.id),
             "employee": str(self.emp1.id),
-            "position": str(self.position.id),
-            "card_number": "8600123456789020",
-            "salary_type": "fixed_amount",
-            "fix_summa": "5000000.00",
-            "rec_dism_date": "2026-02-01",
             "dismissal_reason": "Xodim ishdan bo'shadi",
         }
         response = self.client.post(
-            "/api/v1/hr/recruitment-dismissals/", data, format="json"
+            "/api/v1/hr/recruitment-dismissals/dismiss/", data, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         block_log = UserBlockLog.objects.filter(
@@ -817,46 +818,54 @@ class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
         )
 
     def test_dismissal_without_linked_user_does_not_fail(self):
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=self.emp1,
+            position=self.position,
+            card_number="8600123456789022",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
         self.client.force_authenticate(self.user_org1)
         data = {
-            "type": "dismissal",
-            "branch": str(self.branch1.id),
             "employee": str(self.emp1.id),
-            "position": str(self.position.id),
-            "card_number": "8600123456789022",
-            "salary_type": "fixed_amount",
-            "fix_summa": "5000000.00",
-            "rec_dism_date": "2026-02-01",
             "dismissal_reason": "Sabab",
         }
         response = self.client.post(
-            "/api/v1/hr/recruitment-dismissals/", data, format="json"
+            "/api/v1/hr/recruitment-dismissals/dismiss/", data, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertFalse(UserBlockLog.objects.exists())
 
     def test_create_dismissal_with_attachment_success(self):
+        RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=self.emp1,
+            position=self.position,
+            card_number="8600123456789023",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
         self.client.force_authenticate(self.user_org1)
         attachment = SimpleUploadedFile(
             "buyruq.pdf", b"%PDF-1.4 fake content", content_type="application/pdf"
         )
         data = {
-            "type": "dismissal",
-            "branch": str(self.branch1.id),
             "employee": str(self.emp1.id),
-            "position": str(self.position.id),
-            "card_number": "8600123456789023",
-            "salary_type": "fixed_amount",
-            "fix_summa": "5000000.00",
-            "rec_dism_date": "2026-02-01",
             "dismissal_reason": "O'z xohishiga ko'ra",
             "attachment": attachment,
         }
         response = self.client.post(
-            "/api/v1/hr/recruitment-dismissals/", data, format="multipart"
+            "/api/v1/hr/recruitment-dismissals/dismiss/", data, format="multipart"
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        record = RecruitmentDismissal.objects.get(card_number="8600123456789023")
+        record = RecruitmentDismissal.objects.get(
+            employee=self.emp1, type=RecruitmentDismissal.Type.DISMISSAL
+        )
         self.assertTrue(record.attachment.name.endswith(".pdf"))
 
 

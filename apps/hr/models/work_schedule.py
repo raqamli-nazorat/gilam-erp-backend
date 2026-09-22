@@ -1,6 +1,19 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from apps.base.models import BaseModel
+
+
+class Weekday(models.IntegerChoices):
+    """Hafta kunlari — `WorkSchedule.days` massividagi qiymatlar."""
+
+    MONDAY = 0, "Dushanba"
+    TUESDAY = 1, "Seshanba"
+    WEDNESDAY = 2, "Chorshanba"
+    THURSDAY = 3, "Payshanba"
+    FRIDAY = 4, "Juma"
+    SATURDAY = 5, "Shanba"
+    SUNDAY = 6, "Yakshanba"
 
 
 class WorkSchedule(BaseModel):
@@ -8,13 +21,14 @@ class WorkSchedule(BaseModel):
     description = models.TextField(blank=True, default="", verbose_name="Tavsifi")
     from_hour = models.TimeField(verbose_name="Boshlanish vaqti")
     to_hour = models.TimeField(verbose_name="Tugash vaqti")
-    is_monday = models.BooleanField(default=False, verbose_name="Dushanba")
-    is_tuesday = models.BooleanField(default=False, verbose_name="Seshanba")
-    is_wednesday = models.BooleanField(default=False, verbose_name="Chorshanba")
-    is_thursday = models.BooleanField(default=False, verbose_name="Payshanba")
-    is_friday = models.BooleanField(default=False, verbose_name="Juma")
-    is_saturday = models.BooleanField(default=False, verbose_name="Shanba")
-    is_sunday = models.BooleanField(default=False, verbose_name="Yakshanba")
+    days = ArrayField(
+        models.PositiveSmallIntegerField(choices=Weekday.choices),
+        default=list,
+        blank=True,
+        verbose_name="Hafta kunlari",
+        help_text="Ish kunlari ro'yxati: 0=Dushanba, 1=Seshanba, 2=Chorshanba, "
+        "3=Payshanba, 4=Juma, 5=Shanba, 6=Yakshanba. Masalan: [0, 1, 2, 3, 4]",
+    )
 
     class Meta:
         db_table = "hr_work_schedule"

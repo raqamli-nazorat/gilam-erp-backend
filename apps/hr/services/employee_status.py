@@ -79,6 +79,30 @@ def get_employee_status_counts(queryset):
     return {"total": total, "active": active, "inactive": total - active}
 
 
+def get_active_recruitment_records(employee):
+    """Xodimning hozir faol (hali bo'shatilmagan) ishga olish yozuvlarini qaytaradi.
+
+    Har filial bo'yicha eng oxirgi voqea "ishga olish" bo'lsa — o'sha yozuv
+    faol hisoblanadi (`dismiss/` endpointida branch/position/card_number/salary_type
+    shu yozuvdan ko'chiriladi).
+    """
+    records = (
+        RecruitmentDismissal.objects.filter(employee=employee, is_active=True)
+        .select_related("branch", "position")
+        .order_by("branch_id", "-rec_dism_date", "-created_at")
+    )
+
+    latest_by_branch = {}
+    for record in records:
+        latest_by_branch.setdefault(record.branch_id, record)
+
+    return [
+        record
+        for record in latest_by_branch.values()
+        if record.type == RecruitmentDismissal.Type.RECRUITMENT
+    ]
+
+
 def get_employee_employment_history(employee):
     """Xodimning har bir filial bo'yicha ish tarixini (joriy holati bilan) qaytaradi.
 
