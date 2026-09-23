@@ -28,3 +28,9 @@ class UserAdmin(BaseModelAdmin):
     search_fields = ("full_name", "phone_number", "role__name", "employee__full_name")
     ordering = ("-created_at",)
     autocomplete_fields = ("role", "employee")
+
+    def save_model(self, request, obj, form, change):
+        """Parol maydoni formada o'zgargan bo'lsa, uni hash qilib saqlaydi."""
+        if "password" in form.changed_data:
+            obj.set_password(obj.password)
+        super().save_model(request, obj, form, change)

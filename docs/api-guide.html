@@ -705,6 +705,27 @@ const RESOURCES = [
     example:{id:"81920314-2536-4d6f-b071-839405162700",quality_info:{id:"5e6f7081-9203-4a3c-8d4e-506172839405",name:"Premium"},name:"Zar Gul",description:"An'anaviy naqsh",created_at:"2026-02-01T09:12:00+05:00",updated_at:"2026-02-01T09:12:00+05:00"}
   },
   {
+    id:"product-parties", group:"catalog", title:"Mahsulot partiyalari", base:"/api/v1/catalog/product-parties/",
+    app:"catalog", model:"productparty", activeOnly:false,
+    search:["name","party_number","barcode"], ordering:["name","created_at","price_per_sqm_sale"],
+    filters:[["name","nomi bo'yicha (icontains)"],["party_number","partiya raqami bo'yicha (icontains)"],["barcode","shtrix-kod bo'yicha (icontains)"],["branch","filial UUID (bir nechta)"],["quality","sifat UUID (bir nechta)"],["design","dizayn UUID (bir nechta)"],["color","rang UUID (bir nechta)"],["unit","o'lchov birligi UUID (bir nechta)"],["is_runner","true/false — yo'lak (runner) mahsulot"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["branch","uuid","Ha","Tegishli filial id'si"],
+      ["name","string","Ha","Partiya nomi"],
+      ["party_number","string","Yo'q","Partiya raqami"],
+      ["quality","uuid","Ha","Sifat id'si"],
+      ["design","uuid","Ha","Dizayn id'si"],
+      ["color","uuid","Ha","Rang id'si"],
+      ["unit","uuid","Ha","O'lchov birligi id'si"],
+      ["description","string","Yo'q","Tavsif"],
+      ["barcode","string","Yo'q","Shtrix-kod — noyob bo'lishi shart"],
+      ["is_runner","bool","Yo'q","Yo'lak (runner) mahsulotmi — default false"],
+      ["price_per_sqm_purchase","decimal","Ha","1 kv.m tannarx (kirish narxi)"],
+      ["price_per_sqm_sale","decimal","Ha","1 kv.m sotuv narxi"]
+    ],
+    example:{id:"92031425-3647-4e70-c182-940516273855",branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},party_number:"P-001",name:"1-partiya",quality_info:{id:"5e6f7081-9203-4a3c-8d4e-506172839405",name:"Premium"},design_info:{id:"81920314-2536-4d6f-b071-839405162700",name:"Zar Gul"},color_info:{id:"70819203-1425-4c5e-af60-728394051627",name:"Qizil"},unit_info:{id:"6f708192-0314-4b4d-9e5f-617283940516",name:"kv.m"},description:"",barcode:"4780000000123",is_runner:false,price_per_sqm_purchase:"100000.00",price_per_sqm_sale:"150000.00",created_at:"2026-02-05T09:00:00+05:00",updated_at:"2026-02-05T09:00:00+05:00"}
+  },
+  {
     id:"counterparty-types", group:"finance", title:"Kontragent turlari", base:"/api/v1/finance/counterparty-types/",
     app:"finance", model:"counterpartytype", activeOnly:false,
     search:["name"], ordering:["name","created_at"],
@@ -798,7 +819,7 @@ const GROUPS = [
   {key:"auth", label:"Auth", links:[["auth-login","Login"],["auth-refresh","Token yangilash"]]},
   {key:"accounts", label:"Accounts", links:[["roles","Rollar"],["users","Foydalanuvchilar"]]},
   {key:"org", label:"Tashkilot", links:[["countries","Davlatlar"],["regions","Viloyatlar"],["districts","Tumanlar"],["organizations","Tashkilotlar"],["branches","Filiallar"]]},
-  {key:"catalog", label:"Katalog", links:[["qualities","Sifatlar"],["units","O'lchov birliklari"],["colors","Ranglar"],["designs","Dizaynlar"]]},
+  {key:"catalog", label:"Katalog", links:[["qualities","Sifatlar"],["units","O'lchov birliklari"],["colors","Ranglar"],["designs","Dizaynlar"],["product-parties","Mahsulot partiyalari"]]},
   {key:"finance", label:"Moliya", links:[["counterparty-types","Kontragent turlari"]]},
   {key:"hr", label:"HR", links:[["employees","Xodimlar"],["positions","Lavozimlar"],["recruitment-dismissals","Ishga olish / bo'shatish"],["work-schedules","Ish grafiklari"]]},
   {key:"audits", label:"Audit", links:[["audit-logs","Loglar"]]}

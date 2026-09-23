@@ -46,6 +46,19 @@ def annotate_employee_status(queryset, employee_field="pk"):
     )
 
 
+def annotate_latest_position(queryset, employee_field="pk"):
+    """Xodim queryset'iga oxirgi faol ishga olish yozuvidagi lavozim nomini N+1 siz qo'shadi."""
+    latest_recruitment = RecruitmentDismissal.objects.filter(
+        employee_id=OuterRef(employee_field),
+        type=RecruitmentDismissal.Type.RECRUITMENT,
+        is_active=True,
+    ).order_by("-rec_dism_date", "-created_at")
+
+    return queryset.annotate(
+        latest_position_name=Subquery(latest_recruitment.values("position__name")[:1])
+    )
+
+
 def build_employment_status(
     is_employed, latest_status_type, latest_status_date, latest_status_reason
 ):

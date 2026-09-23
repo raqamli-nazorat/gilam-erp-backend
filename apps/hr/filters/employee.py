@@ -1,6 +1,9 @@
 import django_filters
+from django.db.models import Q
 
-from ..models import Employee
+from apps.base.filters import CharInFilter
+
+from ..models import Employee, RecruitmentDismissal
 
 
 class EmployeeFilter(django_filters.FilterSet):
@@ -23,6 +26,29 @@ class EmployeeFilter(django_filters.FilterSet):
     is_active = django_filters.BooleanFilter(
         field_name="is_employed", label="Holat (Faol/Nofaol)"
     )
+    employment_status = CharInFilter(
+        method="filter_employment_status",
+        label="Ish holati: not_hired, dismissed, active (vergul bilan bir nechta)",
+    )
+
+    def filter_employment_status(self, queryset, name, value):
+        """`not_hired`/`dismissed`/`active` qiymatlari bo'yicha xodimlarni filtrlaydi.
+
+        `not_hired` — hech qachon ishga olinmagan, `dismissed` — oldin ishlagan,
+        keyin bo'shagan, `active` — hozir faol ishlaydi. Bir nechtasi vergul bilan
+        birga so'ralishi mumkin, masalan `?employment_status=not_hired,dismissed`.
+        """
+        q = Q()
+        if "active" in value:
+            q |= Q(is_employed=True)
+        if "dismissed" in value:
+            q |= Q(
+                is_employed=False,
+                latest_status_type=RecruitmentDismissal.Type.DISMISSAL,
+            )
+        if "not_hired" in value:
+            q |= Q(is_employed=False, latest_status_type__isnull=True)
+        return queryset.filter(q) if q else queryset
 
     class Meta:
         model = Employee
@@ -40,4 +66,5 @@ class EmployeeFilter(django_filters.FilterSet):
             "start_date",
             "end_date",
             "is_active",
+            "employment_status",
         ]

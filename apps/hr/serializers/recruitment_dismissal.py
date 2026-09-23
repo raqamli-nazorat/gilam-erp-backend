@@ -137,6 +137,15 @@ class EmployeeRecruitmentSerializer(BaseModelSerializer):
                     }
                 )
 
+        if employee and get_active_recruitment_records(employee):
+            raise serializers.ValidationError(
+                {
+                    "employee": [
+                        "Xodim allaqachon faol ishlamoqda, qayta ishga olib bo'lmaydi."
+                    ]
+                }
+            )
+
         return attrs
 
     def create(self, validated_data):

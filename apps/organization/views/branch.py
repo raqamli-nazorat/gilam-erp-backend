@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
@@ -6,6 +6,9 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 
 from apps.base.views import BaseManageViewSet
+from apps.hr.models import Employee
+from apps.hr.services import annotate_latest_position
+from apps.warehouse.models import Warehouse
 
 from ..filters import BranchFilter
 from ..models import Branch
@@ -35,6 +38,47 @@ class BranchViewSet(BaseManageViewSet):
         "close": ["organization.close_branch"],
         "open": ["organization.open_branch"],
     }
+
+    def get_queryset(self):
+        """`TenantBranchScopeMixin` skoupidan keyin, detal uchun xodim/ombor ro'yxatlarini prefetch qiladi."""
+        queryset = super().get_queryset()
+
+        if self.action == "retrieve":
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "employees",
+                    queryset=annotate_latest_position(
+                        Employee.objects.active()
+                    ).order_by("full_name"),
+                ),
+                Prefetch(
+                    "warehouses",
+                    queryset=Warehouse.objects.active().order_by("name"),
+                ),
+            )
+
+        return queryset
+
+    @property
+    def serializer_fields(self):
+        """Ro'yxatda xodim/ombor ro'yxatlarini (N+1 oldini olish uchun) chiqarmaydi."""
+        if self.action == "list":
+            return [
+                "id",
+                "organization",
+                "name",
+                "phone",
+                "region",
+                "district",
+                "address",
+                "is_closed",
+                "closing_reason",
+                "warehouses_count",
+                "employees_count",
+                "created_at",
+                "updated_at",
+            ]
+        return None
 
     @action(detail=False, methods=["get"])
     def counts(self, request):

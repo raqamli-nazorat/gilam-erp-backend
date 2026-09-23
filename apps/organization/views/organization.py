@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from apps.base.views import BaseManageViewSet
 
 from ..filters import OrganizationFilter
-from ..models import Organization
+from ..models import Branch, Organization
 from ..serializers import OrganizationSerializer
 from ..services import get_organization_status_counts
 
@@ -20,7 +20,17 @@ class OrganizationViewSet(BaseManageViewSet):
         .annotate(
             branches_count=Count(
                 "branches", filter=Q(branches__is_active=True), distinct=True
-            )
+            ),
+            branches_active_count=Count(
+                "branches",
+                filter=Q(branches__is_active=True, branches__is_closed=False),
+                distinct=True,
+            ),
+            branches_closed_count=Count(
+                "branches",
+                filter=Q(branches__is_active=True, branches__is_closed=True),
+                distinct=True,
+            ),
         )
     )
     serializer_class = OrganizationSerializer
@@ -32,6 +42,44 @@ class OrganizationViewSet(BaseManageViewSet):
         "suspend": ["organization.suspend_organization"],
         "activate": ["organization.activate_organization"],
     }
+
+    def get_queryset(self):
+        """`TenantBranchScopeMixin` skoupidan keyin, detal uchun filiallar ro'yxatini prefetch qiladi."""
+        queryset = super().get_queryset()
+
+        if self.action == "retrieve":
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "branches",
+                    queryset=Branch.objects.active().order_by("name"),
+                ),
+            )
+
+        return queryset
+
+    @property
+    def serializer_fields(self):
+        """Ro'yxatda filiallar ro'yxatini (N+1 oldini olish uchun) chiqarmaydi."""
+        if self.action == "list":
+            return [
+                "id",
+                "name",
+                "inn",
+                "phone",
+                "director",
+                "region",
+                "district",
+                "address",
+                "prefix",
+                "is_suspended",
+                "suspension_reason",
+                "branches_count",
+                "branches_active_count",
+                "branches_closed_count",
+                "created_at",
+                "updated_at",
+            ]
+        return None
 
     @action(detail=False, methods=["get"])
     def counts(self, request):
