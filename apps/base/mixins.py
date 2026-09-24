@@ -62,26 +62,30 @@ class TenantBranchScopeMixin:
         user = getattr(request, "user", None) if request else None
         extra_kwargs = {}
 
-        if user and not getattr(user, "is_system_admin", False):
-            model = serializer.Meta.model
+        if user and getattr(user, "is_authenticated", False):
+            model = self.get_queryset().model
             fields = {f.name for f in model._meta.get_fields()}
 
-            if "organization" in fields:
-                extra_kwargs["organization"] = user.organization
+            if "created_by" in fields:
+                extra_kwargs["created_by"] = user
 
-            if "branch" in fields:
-                branch = serializer.validated_data.get("branch")
-                accessible_branch_ids = set(
-                    user.get_accessible_branches().values_list("id", flat=True)
-                )
-                if branch and branch.id not in accessible_branch_ids:
-                    from rest_framework.exceptions import ValidationError
+            if not getattr(user, "is_system_admin", False):
+                if "organization" in fields:
+                    extra_kwargs["organization"] = user.organization
 
-                    raise ValidationError(
-                        {
-                            "branch": "Sizda ushbu filial uchun ma'lumot yaratish huquqi yo'q."
-                        }
+                if "branch" in fields:
+                    branch = serializer.validated_data.get("branch")
+                    accessible_branch_ids = set(
+                        user.get_accessible_branches().values_list("id", flat=True)
                     )
+                    if branch and branch.id not in accessible_branch_ids:
+                        from rest_framework.exceptions import ValidationError
+
+                        raise ValidationError(
+                            {
+                                "branch": "Sizda ushbu filial uchun ma'lumot yaratish huquqi yo'q."
+                            }
+                        )
 
         serializer.save(**extra_kwargs)
 

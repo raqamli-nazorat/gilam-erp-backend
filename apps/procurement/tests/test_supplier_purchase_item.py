@@ -96,6 +96,43 @@ class SupplierPurchaseItemAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(SupplierPurchaseItem.objects.count(), 2)
 
+    def test_create_supplier_purchase_item_recalculates_purchase_total_success(self):
+        response = self.client.post(
+            "/api/v1/procurement/purchase-items/",
+            {
+                "purchase": str(self.purchase.id),
+                "product_party": str(self.product_party.id),
+                "roll_number": "RL-20513",
+                "width": "4.00",
+                "length": "25.00",
+                "price_per_sqm": "310000.00",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["subtotal"], "31000000.00")
+        self.purchase.refresh_from_db()
+        self.assertEqual(str(self.purchase.total_amount), "62000000.00")
+
+    def test_update_supplier_purchase_item_recalculates_purchase_total_success(self):
+        response = self.client.patch(
+            f"/api/v1/procurement/purchase-items/{self.item.id}/",
+            {"price_per_sqm": "400000.00"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["subtotal"], "40000000.00")
+        self.purchase.refresh_from_db()
+        self.assertEqual(str(self.purchase.total_amount), "40000000.00")
+
+    def test_delete_supplier_purchase_item_recalculates_purchase_total_success(self):
+        response = self.client.delete(
+            f"/api/v1/procurement/purchase-items/{self.item.id}/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.purchase.refresh_from_db()
+        self.assertEqual(str(self.purchase.total_amount), "0.00")
+
     def test_create_supplier_purchase_item_invalid_data(self):
         response = self.client.post(
             "/api/v1/procurement/purchase-items/",

@@ -5,11 +5,20 @@ from apps.base.views import BaseManageViewSet
 
 from ..filters import SupplierPurchaseItemFilter
 from ..models import SupplierPurchaseItem
-from ..serializers import SupplierPurchaseItemSerializer
+from ..serializers import (
+    SupplierPurchaseItemCreateSerializer,
+    SupplierPurchaseItemSerializer,
+    SupplierPurchaseItemUpdateSerializer,
+)
+from ..services import recalculate_totals
 
 
 class SupplierPurchaseItemViewSet(BaseManageViewSet):
-    """Xarid qatorlari uchun CRUD ViewSet."""
+    """Xarid qatorlari uchun CRUD ViewSet.
+
+    `create`/`update`/`partial_update`/`destroy` — qatorga bog'liq xarid hujjatining
+    `total_amount`/`debt_amount`ini avtomatik qayta hisoblaydi.
+    """
 
     queryset = SupplierPurchaseItem.objects.select_related(
         "purchase", "product_party"
@@ -33,3 +42,16 @@ class SupplierPurchaseItemViewSet(BaseManageViewSet):
             queryset = queryset.filter(purchase__organization_id=user.organization_id)
 
         return queryset
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return SupplierPurchaseItemCreateSerializer
+        if self.action in ("update", "partial_update"):
+            return SupplierPurchaseItemUpdateSerializer
+        return super().get_serializer_class()
+
+    def perform_destroy(self, instance):
+        """Qatorni o'chiradi va hujjatning summalarini qayta hisoblaydi."""
+        purchase = instance.purchase
+        instance.delete()
+        recalculate_totals(purchase)
