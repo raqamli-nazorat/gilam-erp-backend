@@ -10,7 +10,7 @@ from .recruitment_dismissal import (
     RecruitmentDismissalListSerializer,
     RecruitmentDismissalSerializer,
 )
-from .work_schedule import WorkScheduleSerializer
+from .work_schedule import WorkScheduleItemSerializer, WorkScheduleSerializer
 
 __all__ = [
     "EmployeeDismissalSerializer",
@@ -23,5 +23,6 @@ __all__ = [
     "RecruitmentDismissalBulkDismissSerializer",
     "RecruitmentDismissalListSerializer",
     "RecruitmentDismissalSerializer",
+    "WorkScheduleItemSerializer",
     "WorkScheduleSerializer",
 ]

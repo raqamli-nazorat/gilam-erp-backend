@@ -70,7 +70,7 @@ class RecruitmentDismissalViewSet(BaseManageViewSet):
 
     @action(detail=False, methods=["post"])
     def dismiss(self, request, *args, **kwargs):
-        """Xodimni ishdan bo'shatish — `employee` tanlanadi, faqat sabab va asos hujjat kiritiladi."""
+        """Xodimni ishdan bo'shatish — `employee` tanlanadi, faqat sabab kiritiladi."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance = serializer.save()
@@ -94,7 +94,7 @@ class RecruitmentDismissalViewSet(BaseManageViewSet):
 
     @action(detail=False, methods=["post"], url_path="bulk-dismiss")
     def bulk_dismiss(self, request, *args, **kwargs):
-        """Bir nechta xodimni bitta so'rovda, umumiy sabab/hujjat bilan ishdan bo'shatish uchun."""
+        """Bir nechta xodimni bitta so'rovda, umumiy sabab bilan ishdan bo'shatish uchun."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instances = serializer.save()

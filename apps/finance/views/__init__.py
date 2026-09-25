@@ -1,13 +1,12 @@
+from .accrual_retention import AccrualRetentionViewSet
+from .counterparty import CounterpartyViewSet
 from .counterparty_type import CounterpartyTypeViewSet
-from .debt_ledger import DebtLedgerViewSet
-from .installment_agreement import InstallmentAgreementViewSet
-from .installment_schedule import InstallmentScheduleViewSet
-from .payment import PaymentViewSet
+from .currency import CurrencyLedgerViewSet, CurrencyViewSet
 
 __all__ = [
+    "AccrualRetentionViewSet",
     "CounterpartyTypeViewSet",
-    "DebtLedgerViewSet",
-    "InstallmentAgreementViewSet",
-    "InstallmentScheduleViewSet",
-    "PaymentViewSet",
+    "CounterpartyViewSet",
+    "CurrencyLedgerViewSet",
+    "CurrencyViewSet",
 ]

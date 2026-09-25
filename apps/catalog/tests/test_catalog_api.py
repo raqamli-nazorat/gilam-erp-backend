@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import User
-from apps.catalog.models import Design, ProductColor, Quality, Unit
+from apps.catalog.models import Design, DesignPhoto, ProductColor, Quality, Unit
 
 
 class CatalogReferenceAPITestCase(APITestCase):
@@ -119,4 +119,40 @@ class CatalogReferenceAPITestCase(APITestCase):
         """Autentifikatsiyasiz so'rov — 401."""
         self.client.force_authenticate(user=None)
         response = self.client.get("/api/v1/catalog/designs/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class DesignPhotoAPITestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_superuser(
+            phone_number="+998901112255",
+            password="StrongPass123",
+            full_name="Test Admin",
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_list_design_photos_success(self):
+        DesignPhoto.objects.create(photo_path="designs/a.jpg", name="Old ko'rinish")
+        response = self.client.get("/api/v1/catalog/design-photos/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+
+    def test_create_design_photo_success(self):
+        response = self.client.post(
+            "/api/v1/catalog/design-photos/",
+            {"photo_path": "designs/b.jpg", "name": "Yon ko'rinish"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(DesignPhoto.objects.filter(name="Yon ko'rinish").exists())
+
+    def test_create_design_photo_invalid_data(self):
+        response = self.client.post(
+            "/api/v1/catalog/design-photos/", {"name": "Yo'l yo'q"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_list_design_photos_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/v1/catalog/design-photos/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

@@ -26,13 +26,6 @@ class Design(BaseModel):
 
 
 class DesignPhoto(BaseModel):
-    design = models.ForeignKey(
-        Design,
-        on_delete=models.CASCADE,
-        related_name="photos",
-        db_index=True,
-        verbose_name="Dizayn",
-    )
     photo_path = models.CharField(max_length=255, verbose_name="Fayl yo'li")
     name = models.CharField(max_length=100, verbose_name="Nomi")
     description = models.TextField(blank=True, default="", verbose_name="Tavsifi")

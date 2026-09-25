@@ -1,10 +1,8 @@
-from django.core.validators import FileExtensionValidator
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
 from apps.base.serializers import BaseModelSerializer
-from apps.utils.validators import FileSizeValidator
 
 from ..models import Employee, RecruitmentDismissal
 from ..services import get_active_recruitment_records
@@ -28,7 +26,6 @@ class RecruitmentDismissalSerializer(BaseModelSerializer):
             "dismissal_reason",
             "extra_summa",
             "extra_percent",
-            "attachment",
             "created_at",
             "updated_at",
         ]
@@ -159,7 +156,7 @@ class EmployeeRecruitmentSerializer(BaseModelSerializer):
 
 
 class EmployeeDismissalSerializer(BaseModelSerializer):
-    """Xodimni ishdan bo'shatish uchun — `employee` tanlanadi, faqat sabab va asos hujjat kiritiladi.
+    """Xodimni ishdan bo'shatish uchun — `employee` tanlanadi, faqat sabab kiritiladi.
 
     `branch`, `position`, `card_number`, `salary_type` kabi maydonlar xodimning
     hozirgi faol ishlash yozuvidan avtomatik ko'chiriladi.
@@ -169,7 +166,7 @@ class EmployeeDismissalSerializer(BaseModelSerializer):
 
     class Meta:
         model = RecruitmentDismissal
-        fields = ["id", "employee", "dismissal_reason", "attachment"]
+        fields = ["id", "employee", "dismissal_reason"]
         related_fields = {
             "employee": {"fields": ["id", "full_name", "phone_number"]},
         }
@@ -283,21 +280,13 @@ class RecruitmentDismissalBulkCreateSerializer(serializers.Serializer):
 
 
 class RecruitmentDismissalBulkDismissSerializer(serializers.Serializer):
-    """Bir nechta xodimni bitta so'rovda, umumiy sabab/hujjat bilan ishdan bo'shatish uchun."""
+    """Bir nechta xodimni bitta so'rovda, umumiy sabab bilan ishdan bo'shatish uchun."""
 
     employees = serializers.PrimaryKeyRelatedField(
         queryset=Employee.objects.active(), many=True
     )
     dismissal_reason = serializers.CharField(
         required=False, allow_blank=True, default=""
-    )
-    attachment = serializers.FileField(
-        required=False,
-        allow_null=True,
-        validators=[
-            FileExtensionValidator(["pdf", "xls", "xlsx"]),
-            FileSizeValidator(max_size_mb=10),
-        ],
     )
 
     def validate_employees(self, value):
@@ -342,11 +331,10 @@ class RecruitmentDismissalBulkDismissSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
-        """Har bir xodim uchun umumiy sabab/hujjat bilan alohida yozuv yaratadi."""
+        """Har bir xodim uchun umumiy sabab bilan alohida yozuv yaratadi."""
         employees = validated_data["employees"]
         source_by_employee = validated_data["_source_by_employee"]
         dismissal_reason = validated_data.get("dismissal_reason", "")
-        attachment = validated_data.get("attachment")
         request = self.context.get("request")
         actor = getattr(request, "user", None) if request else None
         today = timezone.now().date()
@@ -366,7 +354,6 @@ class RecruitmentDismissalBulkDismissSerializer(serializers.Serializer):
                     fix_percent=source.fix_percent,
                     rec_dism_date=today,
                     dismissal_reason=dismissal_reason,
-                    attachment=attachment,
                 )
                 instance._actor = actor
                 instance.save()

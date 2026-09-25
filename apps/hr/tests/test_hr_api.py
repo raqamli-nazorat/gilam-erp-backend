@@ -1,7 +1,6 @@
 import datetime
 
 from django.contrib.auth.models import Permission
-from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -12,6 +11,7 @@ from apps.hr.models import (
     Position,
     RecruitmentDismissal,
     WorkSchedule,
+    WorkScheduleItem,
 )
 from apps.organization.models import Branch, Country, District, Organization, Region
 
@@ -69,6 +69,10 @@ class HRBaseAPITestCase(APITestCase):
                 "add_workschedule",
                 "change_workschedule",
                 "delete_workschedule",
+                "view_workscheduleitem",
+                "add_workscheduleitem",
+                "change_workscheduleitem",
+                "delete_workscheduleitem",
                 "view_recruitmentdismissal",
                 "add_recruitmentdismissal",
                 "change_recruitmentdismissal",
@@ -597,14 +601,29 @@ class WorkScheduleAPITestCase(HRBaseAPITestCase):
         data = {
             "name": "Kechki smena",
             "description": "14:00-23:00, Dush-Juma",
+            "branch": str(self.branch1.id),
+            "from_date": "2026-01-01",
+            "to_date": "2026-12-31",
             "from_hour": "14:00:00",
             "to_hour": "23:00:00",
-            "days": [0, 1, 2, 3, 4],
         }
         response = self.client.post("/api/v1/hr/work-schedules/", data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["days"], [0, 1, 2, 3, 4])
+        self.assertEqual(response.data["from_date"], "2026-01-01")
         self.assertTrue(response.data["status"])
+
+    def test_create_work_schedule_invalid_dates(self):
+        self.client.force_authenticate(self.user_org1)
+        data = {
+            "branch": str(self.branch1.id),
+            "name": "Noto'g'ri sana",
+            "from_date": "2026-12-31",
+            "to_date": "2026-01-01",
+            "from_hour": "09:00:00",
+            "to_hour": "18:00:00",
+        }
+        response = self.client.post("/api/v1/hr/work-schedules/", data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_work_schedule_invalid_data(self):
         self.client.force_authenticate(self.user_org1)
@@ -617,11 +636,17 @@ class WorkScheduleAPITestCase(HRBaseAPITestCase):
 
     def test_filter_work_schedules_by_is_active(self):
         active_ws = WorkSchedule.objects.create(
+            branch=self.branch1,
+            from_date=datetime.date(2026, 1, 1),
+            to_date=datetime.date(2026, 12, 31),
             name="Asosiy smena",
             from_hour=datetime.time(9, 0),
             to_hour=datetime.time(18, 0),
         )
         inactive_ws = WorkSchedule.objects.create(
+            branch=self.branch1,
+            from_date=datetime.date(2026, 1, 1),
+            to_date=datetime.date(2026, 12, 31),
             name="Eskirgan smena",
             from_hour=datetime.time(9, 0),
             to_hour=datetime.time(18, 0),
@@ -637,6 +662,9 @@ class WorkScheduleAPITestCase(HRBaseAPITestCase):
 
     def test_deleted_work_schedule_still_listed_as_inactive(self):
         ws = WorkSchedule.objects.create(
+            branch=self.branch1,
+            from_date=datetime.date(2026, 1, 1),
+            to_date=datetime.date(2026, 12, 31),
             name="O'chiriladigan smena",
             from_hour=datetime.time(9, 0),
             to_hour=datetime.time(18, 0),
@@ -650,6 +678,46 @@ class WorkScheduleAPITestCase(HRBaseAPITestCase):
         self.assertIn(str(ws.id), ids)
         item = next(i for i in list_response.data["results"] if i["id"] == str(ws.id))
         self.assertFalse(item["status"])
+
+
+class WorkScheduleItemAPITestCase(HRBaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+        self.schedule = WorkSchedule.objects.create(
+            branch=self.branch1,
+            name="Asosiy smena",
+            from_date=datetime.date(2026, 1, 1),
+            to_date=datetime.date(2026, 12, 31),
+            from_hour=datetime.time(9, 0),
+            to_hour=datetime.time(18, 0),
+        )
+
+    def test_create_work_schedule_item_success(self):
+        self.client.force_authenticate(self.user_org1)
+        data = {
+            "work_schedule": str(self.schedule.id),
+            "name": "Navro'z",
+            "day_type": WorkScheduleItem.DayType.FULL_HOLIDAY,
+            "day_date": "2026-03-21",
+            "from_hour": "00:00:00",
+            "to_hour": "00:00:00",
+        }
+        response = self.client.post(
+            "/api/v1/hr/work-schedule-items/", data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["day_type"], "full_holiday")
+
+    def test_create_work_schedule_item_invalid_data(self):
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.post(
+            "/api/v1/hr/work-schedule-items/", {}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_list_work_schedule_items_unauthenticated(self):
+        response = self.client.get("/api/v1/hr/work-schedule-items/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
@@ -1043,35 +1111,6 @@ class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertFalse(UserBlockLog.objects.exists())
-
-    def test_create_dismissal_with_attachment_success(self):
-        RecruitmentDismissal.objects.create(
-            type=RecruitmentDismissal.Type.RECRUITMENT,
-            branch=self.branch1,
-            employee=self.emp1,
-            position=self.position,
-            card_number="8600123456789023",
-            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
-            fix_summa=5000000,
-            rec_dism_date=datetime.date(2026, 1, 10),
-        )
-        self.client.force_authenticate(self.user_org1)
-        attachment = SimpleUploadedFile(
-            "buyruq.pdf", b"%PDF-1.4 fake content", content_type="application/pdf"
-        )
-        data = {
-            "employee": str(self.emp1.id),
-            "dismissal_reason": "O'z xohishiga ko'ra",
-            "attachment": attachment,
-        }
-        response = self.client.post(
-            "/api/v1/hr/recruitment-dismissals/dismiss/", data, format="multipart"
-        )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        record = RecruitmentDismissal.objects.get(
-            employee=self.emp1, type=RecruitmentDismissal.Type.DISMISSAL
-        )
-        self.assertTrue(record.attachment.name.endswith(".pdf"))
 
 
 class EmployeeLedgerAPITestCase(HRBaseAPITestCase):

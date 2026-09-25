@@ -1,28 +1,22 @@
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AccrualRetentionViewSet,
     CounterpartyTypeViewSet,
-    DebtLedgerViewSet,
-    InstallmentAgreementViewSet,
-    InstallmentScheduleViewSet,
-    PaymentViewSet,
+    CounterpartyViewSet,
+    CurrencyLedgerViewSet,
+    CurrencyViewSet,
 )
 
 router = DefaultRouter()
 router.register(
     "counterparty-types", CounterpartyTypeViewSet, basename="counterpartytype"
 )
-router.register("payments", PaymentViewSet, basename="payment")
-router.register("debt-ledgers", DebtLedgerViewSet, basename="debtledger")
+router.register("counterparties", CounterpartyViewSet, basename="counterparty")
+router.register("currencies", CurrencyViewSet, basename="currency")
+router.register("currency-ledgers", CurrencyLedgerViewSet, basename="currencyledger")
 router.register(
-    "installment-agreements",
-    InstallmentAgreementViewSet,
-    basename="installmentagreement",
-)
-router.register(
-    "installment-schedules",
-    InstallmentScheduleViewSet,
-    basename="installmentschedule",
+    "accrual-retentions", AccrualRetentionViewSet, basename="accrualretention"
 )
 
 urlpatterns = router.urls

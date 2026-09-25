@@ -2,12 +2,13 @@ from .employee import EmployeeViewSet
 from .employee_ledger import EmployeeLedgerViewSet
 from .position import PositionViewSet
 from .recruitment_dismissal import RecruitmentDismissalViewSet
-from .work_schedule import WorkScheduleViewSet
+from .work_schedule import WorkScheduleItemViewSet, WorkScheduleViewSet
 
 __all__ = [
     "EmployeeLedgerViewSet",
     "EmployeeViewSet",
     "PositionViewSet",
     "RecruitmentDismissalViewSet",
+    "WorkScheduleItemViewSet",
     "WorkScheduleViewSet",
 ]

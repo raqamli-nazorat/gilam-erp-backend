@@ -16,8 +16,7 @@ class DesignAdmin(BaseModelAdmin):
 
 @admin.register(DesignPhoto)
 class DesignPhotoAdmin(BaseModelAdmin):
-    list_display = ("id", "design", "photo_path", "name", "is_active", "created_at")
-    list_filter = ("is_active", "design", "created_at")
-    search_fields = ("photo_path", "name", "description", "design__name")
+    list_display = ("id", "photo_path", "name", "is_active", "created_at")
+    list_filter = ("is_active", "created_at")
+    search_fields = ("photo_path", "name", "description")
     ordering = ("-created_at",)
-    autocomplete_fields = ("design",)

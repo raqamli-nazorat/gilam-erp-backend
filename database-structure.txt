@@ -63,6 +63,7 @@ Table Branch {
 Table Role {
   id              integer [primary key] // uuid 16
   name            varchar(255) [not null]
+  organization    integer [ref: > Organization.id,  not null] // NULL bo'lsa - bosh ofis yoki global admin
   is_active       boolean [default: true]
   created_at      timestamp [default: `now()`]
   updated_at      timestamp [default: `now()`]
@@ -70,26 +71,14 @@ Table Role {
 
 Table User {
   id              integer [primary key]      // uuid 16
-  branch_id       integer [ref: > Branch.id, not null]
-  branch          integer [ref: > Branch.id,  not null] // NULL bo'lsa - bosh ofis yoki global admin
   full_name       varchar(255) [not null]    // username
   phone_number    varchar(50)
   role            integer [ref: > Role.id, not null]
   password_hash   varchar(255) [not null]
   is_active       boolean [default: true]
+  employee        integer [ref: > Employee.id, not null]
   created_at      timestamp [default: `now()`]
   updated_at      timestamp [default: `now()`]
-}
-
-Table UserBlockLog { // 2026-09-17: yangi — xodim ishdan chiqarilsa User avtomatik bloklanadi
-  id         integer [primary key] // uuid 16
-  user       integer [ref: > User.id, not null]
-  type       choice("Bloklash | block", "Blokdan chiqarish | unblock") [not null]
-  reason     text
-  actor      integer [ref: > User.id, null] // kim bloklagan/blokdan chiqargan
-  is_active  boolean [default: true]
-  created_at timestamp [default: `now()`]
-  updated_at timestamp [default: `now()`]
 }
 
 Table Employee {
@@ -103,7 +92,7 @@ Table Employee {
   stir            varchar [null]
   phone_number    varchar [null]
   id              integer [primary key, increment]
-  branch_id       integer [ref: > Branch.id, not null]
+  branch          integer [ref: > Branch.id, not null]
   name            varchar(100) [not null]
   description     text
   is_active       boolean [default: true]
@@ -120,36 +109,32 @@ Table Position {
   updated_at   timestamp [default: `now()`]
 }
 
-Table WorkSchedule { // 2026-09-17: qayta ishlatiladigan smena shabloniga o'zgartirildi (Figma)
+Table WorkSchedule {
   id           integer [primary key, increment]
-  // branch_id    integer [ref: > Branch.id, not null] // OLIB TASHLANDI 2026-09-17: shablon filialga bog'lanmaydi
+  branch_id    integer [ref: > Branch.id, not null]
   name         varchar(100) [not null]
   description  text
-  // from_date    date [not null] // OLIB TASHLANDI 2026-09-17: endi sana oralig'i emas, doimiy shablon
-  // to_date      date [not null] // OLIB TASHLANDI 2026-09-17
+  from_date    date [not null]
+  to_date      date [not null]
   from_hour    hour [not null]
   to_hour      hour [not null]
-  days         integer[] [default: `[]`] // 2026-09-22: is_monday...is_sunday (7 ta bool) o'rniga — 0=Dushanba...6=Yakshanba
   is_active    boolean [default: true]
   created_at   timestamp [default: `now()`]
   updated_at   timestamp [default: `now()`]
 }
 
-// OLIB TASHLANDI 2026-09-17: WorkSchedule endi kun-kun kalendar emas, umumiy
-// smena shabloni (yuqoridagi is_monday...is_sunday). Shu sabab WorkScheduleItem
-// jadvali butunlay o'chirildi. Tarixiy ma'lumot uchun saqlab qo'yilgan:
-// Table WorkScheduleItem {
-//   id           integer [primary key, increment]
-//   workSchedule integer [ref: > Organization.id, not null]
-//   name         varchar(100) [not null]
-//   day_type     choice("To'liq bayram", "Qisman ish kuni", "To'liq ish kuni")
-//   day_date         date [not null]
-//   from_hour    hour [not null]
-//   to_hour      hour [not null]
-//   is_active    boolean [default: true]
-//   created_at   timestamp [default: `now()`]
-//   updated_at   timestamp [default: `now()`]
-// }
+Table WorkScheduleItem {
+  id           integer [primary key, increment]
+  workSchedule integer [ref: > Organization.id, not null]
+  name         varchar(100) [not null]
+  day_type     choice("To'liq bayram", "Qisman ish kuni", "To'liq ish kuni")
+  day_date         date [not null]
+  from_hour    hour [not null]
+  to_hour      hour [not null]
+  is_active    boolean [default: true]
+  created_at   timestamp [default: `now()`]
+  updated_at   timestamp [default: `now()`]
+}
 
 Table RecruitmentDismissal {
   type             choice ("Ishga olish | recruitment", "Ishdan chiqarish | dismissal")
@@ -166,7 +151,6 @@ Table RecruitmentDismissal {
   dismissal_reason text
   extra_summa      float     [null]
   extra_percent    float     [null]
-  attachment       varchar   [null] // 2026-09-17: yangi — asos hujjat fayli (PDF/Excel)
   id               integer   [primary key, increment]
   is_active        boolean   [default: true]
   created_at       timestamp [default: `now()`]
@@ -181,8 +165,8 @@ Table EmployeeLedger {
   is_active       boolean [default: true]
   created_at      timestamp [default: `now()`]
   updated_at      timestamp [default: `now()`]
-
 }
+
 Table Currency {
   id              integer [primary key]      // uuid 16
   name            varchar // O'zbekiston so'mi
@@ -316,8 +300,6 @@ Table Warehouse {
   address text
   created_at timestamp [default: `now()`]
 }
-
-
 
 // Har bir rulonning alohida hisobi (Gilam yo'laklari uchun o'ta muhim)
 // Table CarpetRoll {
