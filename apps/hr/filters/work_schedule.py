@@ -19,11 +19,20 @@ class WorkScheduleFilter(django_filters.FilterSet):
         field_name="updated_at", lookup_expr="lte", label="O'zgartirilgan sana (gacha)"
     )
 
+    work_day = django_filters.NumberFilter(
+        method="filter_work_day", label="Ish kuni (0=Du … 6=Ya)"
+    )
+
+    def filter_work_day(self, queryset, name, value):
+        """Berilgan hafta kuni ish kunlari qatorida bo'lgan grafiklarni qaytaradi."""
+        return queryset.filter(work_days__contains=[int(value)])
+
     class Meta:
         model = WorkSchedule
         fields = [
             "branch",
             "name",
+            "work_day",
             "is_active",
             "start_date",
             "end_date",

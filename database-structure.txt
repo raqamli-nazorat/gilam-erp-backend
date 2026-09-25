@@ -114,10 +114,11 @@ Table WorkSchedule {
   branch_id    integer [ref: > Branch.id, not null]
   name         varchar(100) [not null]
   description  text
-  from_date    date [not null]
-  to_date      date [not null]
+  from_date    date
+  to_date      date
   from_hour    hour [not null]
   to_hour      hour [not null]
+  work_days    array(smallint) [not null, note: '0=dushanba ... 6=yakshanba']
   is_active    boolean [default: true]
   created_at   timestamp [default: `now()`]
   updated_at   timestamp [default: `now()`]

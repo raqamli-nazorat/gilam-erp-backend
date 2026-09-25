@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Max
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -21,6 +22,50 @@ def ensure_employee_not_employed(employee):
     Employee.objects.select_for_update().get(pk=employee.pk)
     if get_active_recruitment_records(employee):
         raise serializers.ValidationError({"employee": [ALREADY_EMPLOYED_MESSAGE]})
+
+
+def ensure_employee_has_single_active_record(employee):
+    """Xodim qatorini qulflab, aynan bitta faol ishga olish yozuvi borligini qayta tekshiradi.
+
+    Bir vaqtda kelgan ikki bo'shatish so'rovi ikkalasi ham o'tib ketmasligi uchun
+    saqlashdan oldin, tranzaksiya ichida chaqiriladi. Bo'shatish uchun manba yozuvni qaytaradi.
+    """
+    Employee.objects.select_for_update().get(pk=employee.pk)
+    active_records = get_active_recruitment_records(employee)
+    if not active_records:
+        raise serializers.ValidationError(
+            {"employee": [f"{employee.full_name}: hozir hech qayerda ishlamaydi."]}
+        )
+    if len(active_records) > 1:
+        raise serializers.ValidationError(
+            {
+                "employee": [
+                    f"{employee.full_name}: bir nechta filialda ishlaydi, alohida bo'shatilsin."
+                ]
+            }
+        )
+    return active_records[0]
+
+
+def ensure_recruitment_date_after_dismissal(employee, rec_dism_date):
+    """Ishga olish sanasi xodimning oxirgi bo'shatish sanasidan oldin bo'lmasligini tekshiradi.
+
+    Aks holda yozuv yaratiladi, lekin holat hisobida xodim baribir "bo'shatilgan" bo'lib qoladi.
+    """
+    last_dismissal_date = RecruitmentDismissal.objects.filter(
+        employee=employee,
+        type=RecruitmentDismissal.Type.DISMISSAL,
+        is_active=True,
+    ).aggregate(last=Max("rec_dism_date"))["last"]
+    if rec_dism_date and last_dismissal_date and rec_dism_date < last_dismissal_date:
+        raise serializers.ValidationError(
+            {
+                "rec_dism_date": [
+                    "Ishga olish sanasi xodimning oxirgi bo'shatilgan sanasidan "
+                    f"({last_dismissal_date}) oldin bo'lishi mumkin emas."
+                ]
+            }
+        )
 
 
 class RecruitmentDismissalSerializer(BaseModelSerializer):
@@ -159,6 +204,10 @@ class EmployeeRecruitmentSerializer(BaseModelSerializer):
 
         if employee and get_active_recruitment_records(employee):
             raise serializers.ValidationError({"employee": [ALREADY_EMPLOYED_MESSAGE]})
+        if employee:
+            ensure_recruitment_date_after_dismissal(
+                employee, attrs.get("rec_dism_date")
+            )
 
         return attrs
 
@@ -228,23 +277,27 @@ class EmployeeDismissalSerializer(BaseModelSerializer):
 
     def create(self, validated_data):
         """`type`ni "dismissal" qilib, qolgan maydonlarni joriy ishlash yozuvidan ko'chirib saqlaydi."""
-        source = validated_data.pop("_source_record")
-        validated_data.update(
-            {
-                "type": RecruitmentDismissal.Type.DISMISSAL,
-                "branch": source.branch,
-                "position": source.position,
-                "card_number": source.card_number,
-                "salary_type": source.salary_type,
-                "fix_summa": source.fix_summa,
-                "fix_percent": source.fix_percent,
-                "rec_dism_date": timezone.now().date(),
-            }
-        )
-        instance = RecruitmentDismissal(**validated_data)
+        validated_data.pop("_source_record")
         request = self.context.get("request")
-        instance._actor = getattr(request, "user", None) if request else None
-        instance.save()
+        with transaction.atomic():
+            source = ensure_employee_has_single_active_record(
+                validated_data["employee"]
+            )
+            validated_data.update(
+                {
+                    "type": RecruitmentDismissal.Type.DISMISSAL,
+                    "branch": source.branch,
+                    "position": source.position,
+                    "card_number": source.card_number,
+                    "salary_type": source.salary_type,
+                    "fix_summa": source.fix_summa,
+                    "fix_percent": source.fix_percent,
+                    "rec_dism_date": timezone.now().date(),
+                }
+            )
+            instance = RecruitmentDismissal(**validated_data)
+            instance._actor = getattr(request, "user", None) if request else None
+            instance.save()
         return instance
 
 
@@ -318,15 +371,19 @@ class RecruitmentDismissalBulkDismissSerializer(serializers.Serializer):
     )
 
     def validate_employees(self, value):
-        """Ro'yxat bo'sh bo'lmasligini tekshiradi."""
+        """Ro'yxat bo'sh bo'lmasligini va bir xodim ikki marta kelmasligini tekshiradi."""
         if not value:
             raise serializers.ValidationError("Kamida bitta xodim tanlanishi kerak.")
+        employee_ids = [employee.pk for employee in value]
+        if len(employee_ids) != len(set(employee_ids)):
+            raise serializers.ValidationError(
+                "Bir xodim ro'yxatda bir necha marta kiritilgan."
+            )
         return value
 
     def validate(self, attrs):
         request = self.context.get("request")
         user = getattr(request, "user", None) if request else None
-        source_by_employee = {}
         errors = []
 
         for employee in attrs["employees"]:
@@ -350,18 +407,17 @@ class RecruitmentDismissalBulkDismissSerializer(serializers.Serializer):
                 )
                 continue
 
-            source_by_employee[employee.id] = active_records[0]
-
         if errors:
             raise serializers.ValidationError({"employees": errors})
 
-        attrs["_source_by_employee"] = source_by_employee
         return attrs
 
     def create(self, validated_data):
-        """Har bir xodim uchun umumiy sabab bilan alohida yozuv yaratadi."""
+        """Har bir xodim uchun umumiy sabab bilan alohida yozuv yaratadi.
+
+        Xodim qatori qulflanib, faol yozuv qayta tekshiriladi (bir vaqtdagi so'rovlardan himoya).
+        """
         employees = validated_data["employees"]
-        source_by_employee = validated_data["_source_by_employee"]
         dismissal_reason = validated_data.get("dismissal_reason", "")
         request = self.context.get("request")
         actor = getattr(request, "user", None) if request else None
@@ -370,7 +426,7 @@ class RecruitmentDismissalBulkDismissSerializer(serializers.Serializer):
         instances = []
         with transaction.atomic():
             for employee in employees:
-                source = source_by_employee[employee.id]
+                source = ensure_employee_has_single_active_record(employee)
                 instance = RecruitmentDismissal(
                     type=RecruitmentDismissal.Type.DISMISSAL,
                     employee=employee,

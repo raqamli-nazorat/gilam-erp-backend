@@ -15,6 +15,7 @@ class WorkScheduleAdmin(BaseModelAdmin):
         "to_date",
         "from_hour",
         "to_hour",
+        "work_days",
         "is_active",
         "created_at",
     )
