@@ -35,6 +35,8 @@ class ProductParty(BaseModel):
         on_delete=models.PROTECT,
         related_name="product_parties",
         db_index=True,
+        null=True,
+        blank=True,
         verbose_name="Dizayn",
     )
     color = models.ForeignKey(
