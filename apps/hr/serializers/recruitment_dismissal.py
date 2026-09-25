@@ -7,6 +7,21 @@ from apps.base.serializers import BaseModelSerializer
 from ..models import Employee, RecruitmentDismissal
 from ..services import get_active_recruitment_records
 
+ALREADY_EMPLOYED_MESSAGE = (
+    "Xodim allaqachon faol ishlamoqda, qayta ishga olib bo'lmaydi."
+)
+
+
+def ensure_employee_not_employed(employee):
+    """Xodim qatorini qulflab, faol ishga olish yozuvi yo'qligini qayta tekshiradi.
+
+    Bir vaqtda kelgan ikki so'rov ham `validate` dan o'tib ketmasligi uchun
+    saqlashdan oldin, tranzaksiya ichida chaqiriladi.
+    """
+    Employee.objects.select_for_update().get(pk=employee.pk)
+    if get_active_recruitment_records(employee):
+        raise serializers.ValidationError({"employee": [ALREADY_EMPLOYED_MESSAGE]})
+
 
 class RecruitmentDismissalSerializer(BaseModelSerializer):
     class Meta:
@@ -38,6 +53,14 @@ class RecruitmentDismissalSerializer(BaseModelSerializer):
     def validate(self, attrs):
         request = self.context.get("request")
         user = getattr(request, "user", None) if request else None
+
+        if self.instance:
+            # Yozuv turi va xodimini o'zgartirib, ikkinchi faol yozuv yaratib bo'lmaydi
+            for field in ("type", "employee"):
+                if field in attrs and attrs[field] != getattr(self.instance, field):
+                    raise serializers.ValidationError(
+                        {field: ["Mavjud yozuvda bu maydonni o'zgartirib bo'lmaydi."]}
+                    )
 
         branch = attrs.get("branch") or (
             self.instance.branch if self.instance else None
@@ -135,23 +158,22 @@ class EmployeeRecruitmentSerializer(BaseModelSerializer):
                 )
 
         if employee and get_active_recruitment_records(employee):
-            raise serializers.ValidationError(
-                {
-                    "employee": [
-                        "Xodim allaqachon faol ishlamoqda, qayta ishga olib bo'lmaydi."
-                    ]
-                }
-            )
+            raise serializers.ValidationError({"employee": [ALREADY_EMPLOYED_MESSAGE]})
 
         return attrs
 
     def create(self, validated_data):
-        """`type`ni "recruitment" qilib belgilaydi va `_actor`ni saqlaydi."""
+        """`type`ni "recruitment" qilib belgilaydi va `_actor`ni saqlaydi.
+
+        Xodim qatori qulflanib, faol yozuv qayta tekshiriladi (bir vaqtdagi so'rovlardan himoya).
+        """
         validated_data["type"] = RecruitmentDismissal.Type.RECRUITMENT
         instance = RecruitmentDismissal(**validated_data)
         request = self.context.get("request")
         instance._actor = getattr(request, "user", None) if request else None
-        instance.save()
+        with transaction.atomic():
+            ensure_employee_not_employed(validated_data["employee"])
+            instance.save()
         return instance
 
 
@@ -256,10 +278,15 @@ class RecruitmentDismissalBulkCreateSerializer(serializers.Serializer):
     items = EmployeeRecruitmentSerializer(many=True)
 
     def validate_items(self, value):
-        """Ro'yxat bo'sh bo'lmasligini tekshiradi."""
+        """Ro'yxat bo'sh bo'lmasligini va bir xodim ikki marta kelmasligini tekshiradi."""
         if not value:
             raise serializers.ValidationError(
                 "Kamida bitta xodim ma'lumoti kiritilishi kerak."
+            )
+        employee_ids = [item["employee"].pk for item in value]
+        if len(employee_ids) != len(set(employee_ids)):
+            raise serializers.ValidationError(
+                "Bir xodim ro'yxatda bir necha marta kiritilgan."
             )
         return value
 
@@ -271,6 +298,7 @@ class RecruitmentDismissalBulkCreateSerializer(serializers.Serializer):
         instances = []
         with transaction.atomic():
             for item_data in items_data:
+                ensure_employee_not_employed(item_data["employee"])
                 item_data["type"] = RecruitmentDismissal.Type.RECRUITMENT
                 instance = RecruitmentDismissal(**item_data)
                 instance._actor = actor

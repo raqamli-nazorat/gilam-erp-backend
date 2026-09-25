@@ -2,6 +2,7 @@ import datetime
 
 from django.contrib.auth.models import Permission
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import Role, User, UserBlockLog
@@ -13,6 +14,7 @@ from apps.hr.models import (
     WorkSchedule,
     WorkScheduleItem,
 )
+from apps.hr.serializers.recruitment_dismissal import EmployeeRecruitmentSerializer
 from apps.organization.models import Branch, Country, District, Organization, Region
 
 
@@ -999,6 +1001,111 @@ class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(
             RecruitmentDismissal.objects.filter(employee=self.emp1).exists()
+        )
+
+    def _recruitment_item(self, employee, card_number):
+        """Ishga olish so'rovi uchun bitta yozuv ma'lumotini qaytaradi."""
+        return {
+            "branch": str(self.branch1.id),
+            "employee": str(employee.id),
+            "position": str(self.position.id),
+            "card_number": card_number,
+            "salary_type": "fixed_amount",
+            "fix_summa": "5000000.00",
+            "rec_dism_date": "2026-01-10",
+        }
+
+    def _create_active_recruitment(self, employee):
+        """Xodim uchun faol ishga olish yozuvini yaratadi."""
+        return RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            branch=self.branch1,
+            employee=employee,
+            position=self.position,
+            card_number="8600123456789012",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 10),
+        )
+
+    def test_bulk_create_recruitment_duplicate_employee_invalid_data(self):
+        self.client.force_authenticate(self.user_org1)
+        data = {
+            "items": [
+                self._recruitment_item(self.emp1, "8600123456789012"),
+                self._recruitment_item(self.emp1, "8600123456789013"),
+            ]
+        }
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/bulk-create/", data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            RecruitmentDismissal.objects.filter(employee=self.emp1).exists()
+        )
+
+    def test_bulk_create_recruitment_already_active_employee_invalid_data(self):
+        self._create_active_recruitment(self.emp1)
+        self.client.force_authenticate(self.user_org1)
+        data = {"items": [self._recruitment_item(self.emp1, "8600123456789013")]}
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/bulk-create/", data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            RecruitmentDismissal.objects.filter(employee=self.emp1).count(), 1
+        )
+
+    def test_update_recruitment_employee_change_invalid_data(self):
+        record = self._create_active_recruitment(self.emp1)
+        emp3 = Employee.objects.create(
+            organization=self.org1, branch=self.branch1, full_name="Emp 3"
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.patch(
+            f"/api/v1/hr/recruitment-dismissals/{record.id}/",
+            {"employee": str(emp3.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("employee", response.data)
+        record.refresh_from_db()
+        self.assertEqual(record.employee_id, self.emp1.id)
+
+    def test_update_recruitment_type_change_invalid_data(self):
+        self._create_active_recruitment(self.emp1)
+        dismissal = RecruitmentDismissal.objects.create(
+            type=RecruitmentDismissal.Type.DISMISSAL,
+            branch=self.branch1,
+            employee=self.emp1,
+            position=self.position,
+            card_number="8600123456789012",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=datetime.date(2026, 1, 20),
+        )
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.patch(
+            f"/api/v1/hr/recruitment-dismissals/{dismissal.id}/",
+            {"type": "recruitment"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("type", response.data)
+        dismissal.refresh_from_db()
+        self.assertEqual(dismissal.type, RecruitmentDismissal.Type.DISMISSAL)
+
+    def test_create_recruitment_concurrent_active_record_invalid_data(self):
+        """Tekshiruvdan keyin, saqlashdan oldin boshqa so'rov xodimni ishga olsa — saqlanmaydi."""
+        serializer = EmployeeRecruitmentSerializer(
+            data=self._recruitment_item(self.emp1, "8600123456789012")
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self._create_active_recruitment(self.emp1)
+        with self.assertRaises(ValidationError):
+            serializer.save()
+        self.assertEqual(
+            RecruitmentDismissal.objects.filter(employee=self.emp1).count(), 1
         )
 
     def test_bulk_create_recruitment_unauthenticated(self):
