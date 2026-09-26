@@ -524,8 +524,8 @@ footer{
 
       <!-- ============ HR ============ -->
       <section id="hr">
-        <div class="section-h"><h2>HR</h2><span class="count">5 resurs</span></div>
-        <p class="section-intro">Xodimlar, lavozimlar, ishga olish/bo'shatish tarixi va ish grafiklari va grafik kunlari (bayram/qisman ish kuni). <span class="mono">Xodim daftari</span> (<span class="mono">/api/v1/hr/employee-ledgers/</span>) endpointi ham mavjud, lekin hozircha shu hujjatga qo'shilmagan.</p>
+        <div class="section-h"><h2>HR</h2><span class="count">7 resurs</span></div>
+        <p class="section-intro">Xodimlar, lavozimlar, ishga olish/bo'shatish tarixi, ish grafiklari va grafik kunlari (bayram/qisman ish kuni), xodimlar tabeli va tabel qatorlari (oylik ish vaqti hisobi). <span class="mono">Xodim daftari</span> (<span class="mono">/api/v1/hr/employee-ledgers/</span>) endpointi ham mavjud, lekin hozircha shu hujjatga qo'shilmagan.</p>
         <div id="hr-resources"></div>
       </section>
 
@@ -913,6 +913,41 @@ const RESOURCES = [
       ["to_hour","time","Ha","Tugash vaqti, HH:MM:SS"]
     ],
     example:{id:"7a8091b2-4950-4617-a283-94a5b6c7d8e9",work_schedule_info:{id:"6f7081a2-3849-4506-9172-839405162839",name:"Kechki smena"},name:"Navro'z",day_type:"full_holiday",day_date:"2026-03-21",from_hour:"00:00:00",to_hour:"00:00:00",created_at:"2026-01-12T09:40:00+05:00",updated_at:"2026-01-12T09:40:00+05:00"}
+  },
+  {
+    id:"timesheets", group:"hr", title:"Xodimlar tabeli", base:"/api/v1/hr/timesheets/",
+    app:"hr", model:"employeetimesheet", activeOnly:true,
+    search:["branch__name"], ordering:["for_month","created_at","updated_at"],
+    filters:[["branch","filial UUID"],["for_month","oy raqami (1–12)"],["status","draft/approved/cancelled"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["branch","uuid","Ha","Tabel yuritiladigan filial id'si"],
+      ["for_month","int","Ha","Oy raqami: 1=Yanvar … 12=Dekabr"]
+    ],
+    example:{id:"9b0c1d2e-3f40-4152-a364-758697a8b9c0",branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},for_month:1,status:"draft",items_count:22,created_at:"2026-01-31T18:00:00+05:00",updated_at:"2026-01-31T18:00:00+05:00"},
+    extraNote:"Tabel — filialning bir oy uchun xodimlar ish vaqti jurnali; qatorlari <a href=\"#timesheet-items\">Tabel qatorlari</a> da. <span class=\"mono\">status</span> body'da yuborilmaydi (e'tiborga olinmaydi) — u faqat <span class=\"mono\">approve</span> / <span class=\"mono\">cancel</span> amallari orqali o'zgaradi. Yangi tabel doim <span class=\"mono\">draft</span> bo'ladi.<br><br><b>Holatlar:</b> <span class=\"mono\">draft → approved</span>; <span class=\"mono\">draft</span> yoki <span class=\"mono\">approved → cancelled</span> (yakuniy). Faqat <span class=\"mono\">draft</span> tabelni tahrirlash (PUT/PATCH) va o'chirish mumkin, aks holda 400. <span class=\"mono\">items_count</span> — tabeldagi faol qatorlar soni. Foydalanuvchi faqat o'ziga ruxsat etilgan filiallar tabellarini ko'radi.",
+    actions:[
+      {method:"POST",path:"/api/v1/hr/timesheets/{id}/approve/",title:"Tasdiqlash",desc:"Qoralama (draft) tabelni tasdiqlaydi; body kerak emas. Tasdiqlangach tabel va uning qatorlari o'zgartirilmaydi. Tabel draft bo'lmasa — 400. Ruxsat: hr.change_employeetimesheet.",res:{id:"9b0c1d2e-3f40-4152-a364-758697a8b9c0",branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},for_month:1,status:"approved",created_at:"2026-01-31T18:00:00+05:00",updated_at:"2026-02-01T09:00:00+05:00"}},
+      {method:"POST",path:"/api/v1/hr/timesheets/{id}/cancel/",title:"Bekor qilish",desc:"Draft yoki tasdiqlangan tabelni bekor qiladi (yakuniy holat); body kerak emas. Tabel allaqachon bekor qilingan bo'lsa — 400. Ruxsat: hr.change_employeetimesheet.",res:{id:"9b0c1d2e-3f40-4152-a364-758697a8b9c0",branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},for_month:1,status:"cancelled",created_at:"2026-01-31T18:00:00+05:00",updated_at:"2026-02-01T09:30:00+05:00"}}
+    ]
+  },
+  {
+    id:"timesheet-items", group:"hr", title:"Tabel qatorlari", base:"/api/v1/hr/timesheet-items/",
+    app:"hr", model:"employeetimesheetitem", activeOnly:true,
+    search:["employee__full_name","employee__phone_number"], ordering:["date","created_at","updated_at"],
+    filters:[["employee_timesheet","tabel UUID"],["employee","xodim UUID"],["date_from / date_to","sana oralig'i (YYYY-MM-DD)"]],
+    writeFields:[
+      ["employee_timesheet","uuid","Ha","Tabel id'si (draft holatda bo'lishi kerak)"],
+      ["employee","uuid","Ha","Xodim id'si — tabel filialiga tegishli bo'lishi kerak"],
+      ["date","datetime","Ha","Kun; oyi tabel oyiga mos bo'lishi kerak. Bir xodimga bir kunga bitta qator"],
+      ["work_hour_in_plan","decimal","Yo'q","Rejadagi ish soati, masalan \"8.00\""],
+      ["input_date","datetime","Yo'q","Kelgan vaqti"],
+      ["output_lunch_date","datetime","Yo'q","Tushlikka chiqqan vaqti (input_lunch_date bilan birga)"],
+      ["input_lunch_date","datetime","Yo'q","Tushlikdan kelgan vaqti (output_lunch_date bilan birga)"],
+      ["output_date","datetime","Yo'q","Ketgan vaqti"],
+      ["work_hour_in_fact","decimal","Yo'q","Haqiqiy ish soati. Yuborilmasa — vaqtlardan avtomatik hisoblanadi"]
+    ],
+    example:{id:"ac1d2e3f-4051-4263-b475-8697a8b9c0d1",employee_timesheet_info:{id:"9b0c1d2e-3f40-4152-a364-758697a8b9c0",branch:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",for_month:1,status:"draft"},employee_info:{id:"3f2e1d0c-9b8a-4756-8d3f-2e1d0c9b8a76",full_name:"Aziz Rahimov"},date:"2026-01-10T00:00:00+05:00",work_hour_in_plan:"8.00",input_date:"2026-01-10T09:00:00+05:00",output_lunch_date:"2026-01-10T13:00:00+05:00",input_lunch_date:"2026-01-10T14:00:00+05:00",output_date:"2026-01-10T18:00:00+05:00",work_hour_in_fact:"8.00",created_at:"2026-01-10T18:05:00+05:00",updated_at:"2026-01-10T18:05:00+05:00"},
+    extraNote:"<b>Tekshiruvlar (400):</b> tabel <span class=\"mono\">draft</span> bo'lmasa qator qo'shib, o'zgartirib yoki o'chirib bo'lmaydi; <span class=\"mono\">date</span> oyi tabel oyiga mos kelmasa; xodim boshqa filialniki bo'lsa; shu xodim uchun shu kunga qator allaqachon bor bo'lsa; vaqtlar tartibi buzilsa (kelish ≤ tushlikka chiqish ≤ tushlikdan kelish ≤ ketish); tushlik vaqtlaridan faqat bittasi yuborilsa.<br><br><b>Avtomatik hisob:</b> <span class=\"mono\">work_hour_in_fact</span> yuborilmasa, (ketish − kelish) − (tushlikdan kelish − tushlikka chiqish) soatlarda, 2 xonagacha yaxlitlab yoziladi. Ro'yxat foydalanuvchiga ruxsat etilgan filiallar tabellari bilan cheklanadi."
   }
 ];
 
@@ -924,7 +959,7 @@ const GROUPS = [
   {key:"catalog", label:"Katalog", links:[["qualities","Sifatlar"],["units","O'lchov birliklari"],["colors","Ranglar"],["designs","Dizaynlar"],["design-photos","Dizayn fotosuratlari"],["product-parties","Mahsulot partiyalari"]]},
   {key:"warehouse", label:"Ombor", links:[["warehouses","Omborlar"]]},
   {key:"finance", label:"Moliya", links:[["counterparty-types","Kontragent turlari"],["counterparties","Kontragentlar"],["currencies","Valyutalar"],["currency-ledgers","Valyuta kurslari"],["accrual-retentions","Hisoblash / ushlab qolish"]]},
-  {key:"hr", label:"HR", links:[["employees","Xodimlar"],["positions","Lavozimlar"],["recruitment-dismissals","Ishga olish / bo'shatish"],["work-schedules","Ish grafiklari"],["work-schedule-items","Ish grafigi kunlari"]]},
+  {key:"hr", label:"HR", links:[["employees","Xodimlar"],["positions","Lavozimlar"],["recruitment-dismissals","Ishga olish / bo'shatish"],["work-schedules","Ish grafiklari"],["work-schedule-items","Ish grafigi kunlari"],["timesheets","Xodimlar tabeli"],["timesheet-items","Tabel qatorlari"]]},
   {key:"audits", label:"Audit", links:[["audit-logs","Loglar"]]}
 ];
 
