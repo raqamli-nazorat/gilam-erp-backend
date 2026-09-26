@@ -114,11 +114,11 @@ Table WorkSchedule {
   branch_id    integer [ref: > Branch.id, not null]
   name         varchar(100) [not null]
   description  text
-  from_date    date
-  to_date      date
+  work_days    array //hafta kunlari
+  from_date    date [not null]
+  to_date      date [not null]
   from_hour    hour [not null]
   to_hour      hour [not null]
-  work_days    array(smallint) [not null, note: '0=dushanba ... 6=yakshanba']
   is_active    boolean [default: true]
   created_at   timestamp [default: `now()`]
   updated_at   timestamp [default: `now()`]
@@ -129,7 +129,7 @@ Table WorkScheduleItem {
   workSchedule integer [ref: > Organization.id, not null]
   name         varchar(100) [not null]
   day_type     choice("To'liq bayram", "Qisman ish kuni", "To'liq ish kuni")
-  day_date         date [not null]
+  day_date     date [not null]
   from_hour    hour [not null]
   to_hour      hour [not null]
   is_active    boolean [default: true]
@@ -163,11 +163,79 @@ Table EmployeeLedger {
   branch_id       integer [ref: > Branch.id, not null]
   employee        integer [ref: > Employee.id, not null]
   type            choice  ("recruitment", "dismissal_work", "change_position")
+  date            timestamp [default: `now()`]
   is_active       boolean [default: true]
   created_at      timestamp [default: `now()`]
   updated_at      timestamp [default: `now()`]
 }
 
+Table AccrualRetention {
+  id              integer [primary key]      // uuid 16
+  is_retention    bool
+  name            varchar
+  type            choice ("percent", "fix_summa")
+  currency        integer [ref: > Currency.id, not null]
+  value           float   [default: 0.00] // if type == "percent": max(value) = 100.00 else min(value) = 0 | Hisob kitobda agar boshqa valyuta tanlangan bo'lsa, bu maydon qimayti oylik hisoblash paytida UZS ga joriy sanadagi kurs bilan almashtiriladi, ya'ni oylik UZSdan xisoblanadi.
+  is_active       boolean [default: true]
+  created_at      timestamp [default: `now()`]
+  updated_at      timestamp [default: `now()`]
+}
+
+Table AccrualRetentionDocument {
+  id                integer [primary key]
+  branch_id         integer [ref: > Branch.id, not null]
+  employee          integer [ref: > Employee.id, not null]
+  accrual_retention integer [ref: > AccrualRetention.id, not null]
+  date              timestamp
+  status            choice ("Qoralama", "Tasdiqlangan", "Bekor qilingan")
+  is_active         boolean [default: true]
+  created_at        timestamp [default: `now()`]
+  updated_at        timestamp [default: `now()`]
+}
+
+
+
+Table CalculatingSalary {
+  id                integer [primary key]
+  branch_id         integer [ref: > Branch.id, not null]
+  employee          integer [ref: > Employee.id, not null]
+  for_mounth        choice ("Yanvar", "Fe")
+  amount            float   [default: 0.00]
+  currency          integer [ref: > Currency.id, not null]
+  currency_amount   float   [default: 0.00]
+  status            choice ("Qoralama", "Tasdiqlangan", "Bekor qilingan")
+  is_active         boolean [default: true]
+  created_at        timestamp [default: `now()`]
+  updated_at        timestamp [default: `now()`]
+}
+
+Table EmployeeTimesheet {
+  id                integer [primary key]      // uuid 16
+  branch            integer [ref: > Branch.id, not null]
+  for_mounth        choice ("Yanvar", "Fe")
+  status            choice ("Qoralama", "Tasdiqlangan", "Bekor qilingan")
+  is_active         boolean [default: true]
+  created_at        timestamp [default: `now()`]
+  updated_at        timestamp [default: `now()`]
+}
+
+Table EmployeeTimesheetItem {
+  id                 integer [primary key]      // uuid 16
+  employee_timesheet integer [ref: > EmployeeTimesheet.id, not null]
+  employee           integer [ref: > Employee.id, not null]
+  date               timestamp [default: `now()`]
+  work_hour_in_plan  float
+  input_date         timestamp
+  output_lunch_date  timestamp
+  input_lunch_date   timestamp
+  output_date        timestamp
+  work_hour_in_fact  float
+  is_active          boolean [default: true]
+  created_at         timestamp [default: `now()`]
+  updated_at         timestamp [default: `now()`]
+}
+
+// Currency
 Table Currency {
   id              integer [primary key]      // uuid 16
   name            varchar // O'zbekiston so'mi
@@ -187,16 +255,7 @@ Table CurrencyLedger { // o'zbek so'miga nisbatan qiymatlar saqlanadi.
   updated_at      timestamp [default: `now()`]
 }
 
-Table AccrualRetention {
-  id              integer [primary key]      // uuid 16
-  name            varchar
-  type            choice ("percent", "fix_summa")
-  currency        integer [ref: > Currency.id, not null]
-  value           float   [default: 0.00] // if type == "percent": max(value) = 100.00 else min(value) = 0 | Hisob kitobda agar boshqa valyuta tanlangan bo'lsa, bu maydon qimayti oylik hisoblash paytida UZS ga joriy sanadagi kurs bilan almashtiriladi, ya'ni oylik UZSdan xisoblanadi.
-  is_active       boolean [default: true]
-  created_at      timestamp [default: `now()`]
-  updated_at      timestamp [default: `now()`]
-}
+//
 
 // Table Xodimlar keldi ketisi uchun hgt davomatga o'xshash struktura tuzilsin.
 

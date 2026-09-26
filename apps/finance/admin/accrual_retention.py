@@ -11,12 +11,13 @@ class AccrualRetentionAdmin(BaseModelAdmin):
         "id",
         "name",
         "type",
+        "is_retention",
         "currency",
         "value",
         "is_active",
         "created_at",
     )
-    list_filter = ("is_active", "type", "currency", "created_at")
+    list_filter = ("is_active", "type", "is_retention", "currency", "created_at")
     search_fields = ("name", "currency__name")
     ordering = ("-created_at",)
     autocomplete_fields = ("currency",)
