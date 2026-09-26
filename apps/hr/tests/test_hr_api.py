@@ -835,6 +835,87 @@ class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
             ).exists()
         )
 
+    def test_draft_recruitment_only_affects_employee_after_approval(self):
+        self.client.force_authenticate(self.user_org1)
+        data = {
+            "status": RecruitmentDismissal.Status.DRAFT,
+            **self._recruitment_item(self.emp1, "8600123456789090"),
+        }
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/", data, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        record_id = response.data["id"]
+        self.assertEqual(response.data["status"], RecruitmentDismissal.Status.DRAFT)
+        self.assertFalse(
+            EmployeeLedger.objects.filter(
+                employee=self.emp1, type=EmployeeLedger.Type.RECRUITMENT
+            ).exists()
+        )
+
+        response = self.client.post(
+            f"/api/v1/hr/recruitment-dismissals/{record_id}/approve/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], RecruitmentDismissal.Status.APPROVED)
+        self.assertTrue(
+            EmployeeLedger.objects.filter(
+                employee=self.emp1, type=EmployeeLedger.Type.RECRUITMENT
+            ).exists()
+        )
+
+    def test_cancelled_recruitment_does_not_affect_employee(self):
+        self.client.force_authenticate(self.user_org1)
+        data = {
+            "status": RecruitmentDismissal.Status.DRAFT,
+            **self._recruitment_item(self.emp1, "8600123456789091"),
+        }
+        response = self.client.post(
+            "/api/v1/hr/recruitment-dismissals/", data, format="json"
+        )
+        record_id = response.data["id"]
+
+        response = self.client.post(
+            f"/api/v1/hr/recruitment-dismissals/{record_id}/cancel/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], RecruitmentDismissal.Status.CANCELLED)
+        self.assertFalse(
+            EmployeeLedger.objects.filter(
+                employee=self.emp1, type=EmployeeLedger.Type.RECRUITMENT
+            ).exists()
+        )
+
+    def test_counts_endpoint_reports_recruitment_statuses(self):
+        for index, record_status in enumerate(RecruitmentDismissal.Status.values):
+            RecruitmentDismissal.objects.create(
+                type=RecruitmentDismissal.Type.RECRUITMENT,
+                status=record_status,
+                branch=self.branch1,
+                employee=self.emp1,
+                position=self.position,
+                card_number=f"86001234567890{index}",
+                salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+                fix_summa=5000000,
+                rec_dism_date=datetime.date(2026, 1, 10 + index),
+            )
+
+        self.client.force_authenticate(self.admin)
+        response = self.client.get("/api/v1/counts/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["recruitments"],
+            {"all": 3, "draft": 1, "approved": 1, "cancelled": 1},
+        )
+        self.assertEqual(
+            response.data["dismissals"],
+            {"all": 0, "draft": 0, "approved": 0, "cancelled": 0},
+        )
+
     def test_create_recruitment_for_already_active_employee_same_branch_invalid_data(
         self,
     ):

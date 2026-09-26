@@ -55,6 +55,7 @@ def ensure_recruitment_date_after_dismissal(employee, rec_dism_date):
     last_dismissal_date = RecruitmentDismissal.objects.filter(
         employee=employee,
         type=RecruitmentDismissal.Type.DISMISSAL,
+        status=RecruitmentDismissal.Status.APPROVED,
         is_active=True,
     ).aggregate(last=Max("rec_dism_date"))["last"]
     if rec_dism_date and last_dismissal_date and rec_dism_date < last_dismissal_date:
@@ -74,6 +75,7 @@ class RecruitmentDismissalSerializer(BaseModelSerializer):
         fields = [
             "id",
             "type",
+            "status",
             "branch",
             "employee",
             "position",
@@ -94,6 +96,7 @@ class RecruitmentDismissalSerializer(BaseModelSerializer):
             "employee": {"fields": ["id", "full_name", "phone_number"]},
             "position": {"fields": ["id", "name"]},
         }
+        read_only_fields = ["status"]
 
     def validate(self, attrs):
         request = self.context.get("request")
@@ -153,6 +156,7 @@ class EmployeeRecruitmentSerializer(BaseModelSerializer):
         model = RecruitmentDismissal
         fields = [
             "id",
+            "status",
             "employee",
             "branch",
             "position",
@@ -237,7 +241,7 @@ class EmployeeDismissalSerializer(BaseModelSerializer):
 
     class Meta:
         model = RecruitmentDismissal
-        fields = ["id", "employee", "dismissal_reason"]
+        fields = ["id", "status", "employee", "dismissal_reason"]
         related_fields = {
             "employee": {"fields": ["id", "full_name", "phone_number"]},
         }
@@ -316,6 +320,7 @@ class RecruitmentDismissalListSerializer(BaseModelSerializer):
         fields = [
             "id",
             "rec_dism_date",
+            "status",
             "employee_name",
             "organization_name",
             "branch_name",
@@ -369,6 +374,11 @@ class RecruitmentDismissalBulkDismissSerializer(serializers.Serializer):
     dismissal_reason = serializers.CharField(
         required=False, allow_blank=True, default=""
     )
+    status = serializers.ChoiceField(
+        choices=RecruitmentDismissal.Status.choices,
+        required=False,
+        default=RecruitmentDismissal.Status.APPROVED,
+    )
 
     def validate_employees(self, value):
         """Ro'yxat bo'sh bo'lmasligini va bir xodim ikki marta kelmasligini tekshiradi."""
@@ -419,6 +429,9 @@ class RecruitmentDismissalBulkDismissSerializer(serializers.Serializer):
         """
         employees = validated_data["employees"]
         dismissal_reason = validated_data.get("dismissal_reason", "")
+        record_status = validated_data.get(
+            "status", RecruitmentDismissal.Status.APPROVED
+        )
         request = self.context.get("request")
         actor = getattr(request, "user", None) if request else None
         today = timezone.now().date()
@@ -429,6 +442,7 @@ class RecruitmentDismissalBulkDismissSerializer(serializers.Serializer):
                 source = ensure_employee_has_single_active_record(employee)
                 instance = RecruitmentDismissal(
                     type=RecruitmentDismissal.Type.DISMISSAL,
+                    status=record_status,
                     employee=employee,
                     branch=source.branch,
                     position=source.position,

@@ -31,6 +31,11 @@ class OrganizationViewSet(BaseManageViewSet):
                 filter=Q(branches__is_active=True, branches__is_closed=True),
                 distinct=True,
             ),
+            users_count=Count(
+                "employees__user_account",
+                filter=Q(employees__user_account__is_active=True),
+                distinct=True,
+            ),
         )
     )
     serializer_class = OrganizationSerializer
@@ -76,6 +81,7 @@ class OrganizationViewSet(BaseManageViewSet):
                 "branches_count",
                 "branches_active_count",
                 "branches_closed_count",
+                "users_count",
                 "created_at",
                 "updated_at",
             ]

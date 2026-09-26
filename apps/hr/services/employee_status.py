@@ -22,11 +22,13 @@ def _has_active_branch_subquery(employee_field="pk"):
         employee_id=OuterRef("employee_id"),
         branch_id=OuterRef("branch_id"),
         type=RecruitmentDismissal.Type.DISMISSAL,
+        status=RecruitmentDismissal.Status.APPROVED,
         is_active=True,
     )
     active_recruitments = RecruitmentDismissal.objects.filter(
         employee_id=OuterRef(employee_field),
         type=RecruitmentDismissal.Type.RECRUITMENT,
+        status=RecruitmentDismissal.Status.APPROVED,
         is_active=True,
     ).exclude(Exists(later_dismissal))
     return Exists(active_recruitments)
@@ -35,7 +37,9 @@ def _has_active_branch_subquery(employee_field="pk"):
 def annotate_employee_status(queryset, employee_field="pk"):
     """Xodim queryset'iga joriy ish holati va oxirgi voqea ma'lumotlarini N+1 siz qo'shadi."""
     latest_rd = RecruitmentDismissal.objects.filter(
-        employee_id=OuterRef(employee_field), is_active=True
+        employee_id=OuterRef(employee_field),
+        status=RecruitmentDismissal.Status.APPROVED,
+        is_active=True,
     ).order_by("-rec_dism_date", "-created_at")
 
     return queryset.annotate(
@@ -51,6 +55,7 @@ def annotate_latest_position(queryset, employee_field="pk"):
     latest_recruitment = RecruitmentDismissal.objects.filter(
         employee_id=OuterRef(employee_field),
         type=RecruitmentDismissal.Type.RECRUITMENT,
+        status=RecruitmentDismissal.Status.APPROVED,
         is_active=True,
     ).order_by("-rec_dism_date", "-created_at")
 
@@ -100,7 +105,11 @@ def get_active_recruitment_records(employee):
     shu yozuvdan ko'chiriladi).
     """
     records = (
-        RecruitmentDismissal.objects.filter(employee=employee, is_active=True)
+        RecruitmentDismissal.objects.filter(
+            employee=employee,
+            status=RecruitmentDismissal.Status.APPROVED,
+            is_active=True,
+        )
         .select_related("branch", "position")
         .order_by("branch_id", "-rec_dism_date", "-created_at")
     )
@@ -123,7 +132,11 @@ def get_employee_employment_history(employee):
     o'sha sanadan keyin o'sha filialda "bo'shatish" bo'lgan bo'lsa — Nofaol, bo'lmasa Faol.
     """
     records = (
-        RecruitmentDismissal.objects.filter(employee=employee, is_active=True)
+        RecruitmentDismissal.objects.filter(
+            employee=employee,
+            status=RecruitmentDismissal.Status.APPROVED,
+            is_active=True,
+        )
         .select_related("branch", "branch__organization", "position")
         .order_by("branch_id", "-rec_dism_date", "-created_at")
     )

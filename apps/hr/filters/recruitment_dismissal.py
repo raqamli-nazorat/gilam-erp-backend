@@ -5,6 +5,7 @@ from ..models import RecruitmentDismissal
 
 class RecruitmentDismissalFilter(django_filters.FilterSet):
     type = django_filters.ChoiceFilter(choices=RecruitmentDismissal.Type.choices)
+    status = django_filters.ChoiceFilter(choices=RecruitmentDismissal.Status.choices)
     salary_type = django_filters.ChoiceFilter(
         choices=RecruitmentDismissal.SalaryType.choices
     )
@@ -24,6 +25,7 @@ class RecruitmentDismissalFilter(django_filters.FilterSet):
         model = RecruitmentDismissal
         fields = [
             "type",
+            "status",
             "salary_type",
             "branch",
             "employee",

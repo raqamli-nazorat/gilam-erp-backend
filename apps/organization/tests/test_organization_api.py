@@ -102,6 +102,20 @@ class OrganizationAPITestCase(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_list_organizations_includes_active_user_count(self):
+        User.objects.create_user(
+            phone_number="+998901112234",
+            password="StrongPass123",
+            full_name="Tashkilot foydalanuvchisi",
+            organization=self.organization,
+            branch=self.branch,
+        )
+
+        response = self.client.get("/api/v1/organization/organizations/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"][0]["users_count"], 1)
+
     def test_delete_branch_soft_delete(self):
         response = self.client.delete(
             f"/api/v1/organization/branches/{self.branch.id}/"

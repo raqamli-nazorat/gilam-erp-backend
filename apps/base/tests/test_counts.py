@@ -71,12 +71,14 @@ class CountsAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data
         self.assertEqual(
-            data["organizations"], {"all": 2, "active": 1, "suspended": 1}
+            data["organizations"],
+            {"all": 2, "active": 1, "suspended": 1, "users_count": 2},
         )
         self.assertEqual(data["branches"], {"all": 2, "active": 1, "closed": 1})
         self.assertEqual(data["users"], {"all": 3, "active": 2, "blocked": 1})
-        self.assertEqual(data["recruitments"], 0)
-        self.assertEqual(data["dismissals"], 0)
+        empty_status_counts = {"all": 0, "draft": 0, "approved": 0, "cancelled": 0}
+        self.assertEqual(data["recruitments"], empty_status_counts)
+        self.assertEqual(data["dismissals"], empty_status_counts)
         self.assertEqual(data["models"]["organization.organization"], 2)
         self.assertEqual(data["models"]["organization.branch"], 2)
 

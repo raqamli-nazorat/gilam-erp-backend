@@ -1,6 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 
@@ -15,6 +17,11 @@ from ..serializers import (
     RecruitmentDismissalBulkDismissSerializer,
     RecruitmentDismissalListSerializer,
     RecruitmentDismissalSerializer,
+)
+from ..serializers.recruitment_dismissal import (
+    ensure_employee_has_single_active_record,
+    ensure_employee_not_employed,
+    ensure_recruitment_date_after_dismissal,
 )
 
 
@@ -34,6 +41,10 @@ class RecruitmentDismissalViewSet(BaseManageViewSet):
         "dismissal_reason",
     ]
     ordering_fields = ["rec_dism_date", "created_at"]
+    action_permissions = {
+        "approve": ["hr.change_recruitmentdismissal"],
+        "cancel": ["hr.change_recruitmentdismissal"],
+    }
 
     def get_serializer_class(self):
         """Action'ga qarab tegishli serializer qaytaradi.
@@ -103,3 +114,52 @@ class RecruitmentDismissalViewSet(BaseManageViewSet):
             instances, many=True, context=self.get_serializer_context()
         )
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        instance = self.get_object()
+        if instance.status != RecruitmentDismissal.Status.DRAFT:
+            raise ValidationError(
+                {"status": ["Faqat qoralama yozuvni tasdiqlash mumkin."]}
+            )
+
+        with transaction.atomic():
+            if instance.type == RecruitmentDismissal.Type.RECRUITMENT:
+                ensure_employee_not_employed(instance.employee)
+                ensure_recruitment_date_after_dismissal(
+                    instance.employee, instance.rec_dism_date
+                )
+            else:
+                source = ensure_employee_has_single_active_record(instance.employee)
+                instance.branch = source.branch
+                instance.position = source.position
+                instance.card_number = source.card_number
+                instance.salary_type = source.salary_type
+                instance.fix_summa = source.fix_summa
+                instance.fix_percent = source.fix_percent
+
+            instance.status = RecruitmentDismissal.Status.APPROVED
+            instance._actor = request.user
+            instance.save()
+
+        return Response(
+            RecruitmentDismissalSerializer(
+                instance, context=self.get_serializer_context()
+            ).data
+        )
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        instance = self.get_object()
+        if instance.status != RecruitmentDismissal.Status.DRAFT:
+            raise ValidationError(
+                {"status": ["Faqat qoralama yozuvni bekor qilish mumkin."]}
+            )
+
+        instance.status = RecruitmentDismissal.Status.CANCELLED
+        instance.save(update_fields=["status", "updated_at"])
+        return Response(
+            RecruitmentDismissalSerializer(
+                instance, context=self.get_serializer_context()
+            ).data
+        )

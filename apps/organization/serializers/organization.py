@@ -19,6 +19,7 @@ class OrganizationSerializer(BaseModelSerializer):
     branches_count = serializers.SerializerMethodField()
     branches_active_count = serializers.SerializerMethodField()
     branches_closed_count = serializers.SerializerMethodField()
+    users_count = serializers.SerializerMethodField()
     branches = serializers.SerializerMethodField()
 
     class Meta:
@@ -38,6 +39,7 @@ class OrganizationSerializer(BaseModelSerializer):
             "branches_count",
             "branches_active_count",
             "branches_closed_count",
+            "users_count",
             "branches",
             "created_at",
             "updated_at",
@@ -66,6 +68,14 @@ class OrganizationSerializer(BaseModelSerializer):
         if annotated is not None:
             return annotated
         return obj.branches.filter(is_active=True, is_closed=True).count()
+
+    def get_users_count(self, obj):
+        annotated = obj.__dict__.get("users_count")
+        if annotated is not None:
+            return annotated
+        return obj.employees.filter(
+            is_active=True, user_account__is_active=True
+        ).count()
 
     def get_branches(self, obj):
         """Shu tashkilotga tegishli faol filiallar ro'yxati (view'da prefetch qilingan)."""

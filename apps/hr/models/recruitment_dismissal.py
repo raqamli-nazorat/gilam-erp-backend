@@ -16,6 +16,19 @@ class RecruitmentDismissal(BaseModel):
         SALES_PERCENT = "sales_percent", "Savdodan foiz"
         FOUNDER = "founder", "Asoschi"
 
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Qoralama"
+        APPROVED = "approved", "Tasdiqlangan"
+        CANCELLED = "cancelled", "Bekor qilingan"
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.APPROVED,
+        db_index=True,
+        verbose_name="Holati",
+    )
+
     type = models.CharField(
         max_length=20,
         choices=Type.choices,

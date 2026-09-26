@@ -9,8 +9,13 @@ from ..models import RecruitmentDismissal
 
 @receiver(post_save, sender=RecruitmentDismissal)
 def sync_user_block_on_recruitment_dismissal(sender, instance, created, **kwargs):
-    """Ishdan chiqarishda bog'liq User akkauntini bloklaydi, ishga olishda blokdan chiqaradi."""
-    if not created or not instance.is_active:
+    """Tasdiqlangan ishdan chiqarishda bloklaydi, ishga olishda blokdan chiqaradi."""
+    if (
+        not instance.is_active
+        or instance.status != RecruitmentDismissal.Status.APPROVED
+        or getattr(instance, "_old_status", None)
+        == RecruitmentDismissal.Status.APPROVED
+    ):
         return
 
     user = getattr(instance.employee, "user_account", None)

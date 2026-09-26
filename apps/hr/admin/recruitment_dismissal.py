@@ -10,6 +10,7 @@ class RecruitmentDismissalAdmin(BaseModelAdmin):
     list_display = (
         "id",
         "type",
+        "status",
         "branch",
         "employee",
         "position",
@@ -25,6 +26,7 @@ class RecruitmentDismissalAdmin(BaseModelAdmin):
     list_filter = (
         "is_active",
         "type",
+        "status",
         "branch",
         "position",
         "salary_type",
@@ -41,3 +43,9 @@ class RecruitmentDismissalAdmin(BaseModelAdmin):
     )
     ordering = ("-created_at",)
     autocomplete_fields = ("branch", "employee", "position")
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = list(super().get_readonly_fields(request, obj))
+        if obj and obj.status != RecruitmentDismissal.Status.DRAFT:
+            readonly_fields.append("status")
+        return readonly_fields

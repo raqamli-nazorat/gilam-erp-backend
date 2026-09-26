@@ -10,6 +10,19 @@ from apps.hr.models import RecruitmentDismissal
 from apps.organization.models import Branch, Organization
 
 
+def _status_counts(queryset):
+    return {
+        "all": queryset.count(),
+        "draft": queryset.filter(status=RecruitmentDismissal.Status.DRAFT).count(),
+        "approved": queryset.filter(
+            status=RecruitmentDismissal.Status.APPROVED
+        ).count(),
+        "cancelled": queryset.filter(
+            status=RecruitmentDismissal.Status.CANCELLED
+        ).count(),
+    }
+
+
 def _scoped_queryset(model, user):
     queryset = model._default_manager.all()
     if user.is_system_admin:
@@ -47,8 +60,18 @@ class CountsView(APIView):
             "organizations": {},
             "branches": {},
             "users": {},
-            "recruitments": 0,
-            "dismissals": 0,
+            "recruitments": {
+                "all": 0,
+                "draft": 0,
+                "approved": 0,
+                "cancelled": 0,
+            },
+            "dismissals": {
+                "all": 0,
+                "draft": 0,
+                "approved": 0,
+                "cancelled": 0,
+            },
             "models": {},
         }
 
@@ -77,6 +100,10 @@ class CountsView(APIView):
                     "all": total,
                     "active": active,
                     "suspended": suspended,
+                    "users_count": User.objects.filter(
+                        employee__organization_id__in=queryset.values("id"),
+                        is_active=True,
+                    ).count(),
                 }
             elif model is Branch:
                 active = queryset.filter(is_active=True, is_closed=False).count()
@@ -106,11 +133,11 @@ class CountsView(APIView):
                     "blocked": blocked,
                 }
             elif model is RecruitmentDismissal:
-                result["recruitments"] = queryset.filter(
-                    type=RecruitmentDismissal.Type.RECRUITMENT
-                ).count()
-                result["dismissals"] = queryset.filter(
-                    type=RecruitmentDismissal.Type.DISMISSAL
-                ).count()
+                result["recruitments"] = _status_counts(
+                    queryset.filter(type=RecruitmentDismissal.Type.RECRUITMENT)
+                )
+                result["dismissals"] = _status_counts(
+                    queryset.filter(type=RecruitmentDismissal.Type.DISMISSAL)
+                )
 
         return Response(result)
