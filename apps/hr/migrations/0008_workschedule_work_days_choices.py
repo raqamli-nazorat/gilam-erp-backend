@@ -7,13 +7,29 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('hr', '0007_workschedule_work_days'),
+        ("hr", "0007_workschedule_work_days"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='workschedule',
-            name='work_days',
-            field=django.contrib.postgres.fields.ArrayField(base_field=models.PositiveSmallIntegerField(choices=[(0, 'Dushanba'), (1, 'Seshanba'), (2, 'Chorshanba'), (3, 'Payshanba'), (4, 'Juma'), (5, 'Shanba'), (6, 'Yakshanba')]), default=list, help_text='0=Dushanba, 1=Seshanba, 2=Chorshanba, 3=Payshanba, 4=Juma, 5=Shanba, 6=Yakshanba. Masalan: [0, 1, 2, 3, 4]', size=None, verbose_name='Ish kunlari'),
+            model_name="workschedule",
+            name="work_days",
+            field=django.contrib.postgres.fields.ArrayField(
+                base_field=models.PositiveSmallIntegerField(
+                    choices=[
+                        (0, "Dushanba"),
+                        (1, "Seshanba"),
+                        (2, "Chorshanba"),
+                        (3, "Payshanba"),
+                        (4, "Juma"),
+                        (5, "Shanba"),
+                        (6, "Yakshanba"),
+                    ]
+                ),
+                default=list,
+                help_text="0=Dushanba, 1=Seshanba, 2=Chorshanba, 3=Payshanba, 4=Juma, 5=Shanba, 6=Yakshanba. Masalan: [0, 1, 2, 3, 4]",
+                size=None,
+                verbose_name="Ish kunlari",
+            ),
         ),
     ]

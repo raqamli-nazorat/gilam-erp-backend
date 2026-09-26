@@ -89,10 +89,12 @@ class OrganizationViewSet(BaseManageViewSet):
     @action(detail=False, methods=["get"])
     def count(self, request):
         queryset = self.filter_queryset(self.get_queryset())
-        return Response({
-            "active": queryset.filter(is_suspended=False).count(),
-            "suspended": queryset.filter(is_suspended=True).count(),
-        })
+        return Response(
+            {
+                "active": queryset.filter(is_suspended=False).count(),
+                "suspended": queryset.filter(is_suspended=True).count(),
+            }
+        )
 
     @action(detail=True, methods=["patch"])
     def suspend(self, request, pk=None):

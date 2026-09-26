@@ -7,13 +7,20 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0002_remove_designphoto_design'),
+        ("catalog", "0002_remove_designphoto_design"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='productparty',
-            name='design',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='product_parties', to='catalog.design', verbose_name='Dizayn'),
+            model_name="productparty",
+            name="design",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="product_parties",
+                to="catalog.design",
+                verbose_name="Dizayn",
+            ),
         ),
     ]

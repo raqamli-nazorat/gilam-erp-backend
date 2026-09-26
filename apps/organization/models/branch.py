@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 from apps.base.models import BaseModel
@@ -44,6 +45,17 @@ class Branch(BaseModel):
         blank=True,
         default="",
         verbose_name="Yopilish sababi",
+    )
+    latitude = models.DecimalField(
+        max_digits=10, decimal_places=7, verbose_name="Kenglik (Latitude)"
+    )
+    longitude = models.DecimalField(
+        max_digits=10, decimal_places=7, verbose_name="Uzunlik (Longitude)"
+    )
+    radius = models.PositiveIntegerField(
+        default=50,
+        validators=[MinValueValidator(50), MaxValueValidator(500)],
+        verbose_name="Radius (metr)",
     )
 
     class Meta:

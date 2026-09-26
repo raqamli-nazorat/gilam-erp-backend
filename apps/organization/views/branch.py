@@ -82,10 +82,12 @@ class BranchViewSet(BaseManageViewSet):
     @action(detail=False, methods=["get"])
     def count(self, request):
         queryset = self.filter_queryset(self.get_queryset())
-        return Response({
-            "active": queryset.filter(is_closed=False).count(),
-            "closed": queryset.filter(is_closed=True).count(),
-        })
+        return Response(
+            {
+                "active": queryset.filter(is_closed=False).count(),
+                "closed": queryset.filter(is_closed=True).count(),
+            }
+        )
 
     @action(detail=True, methods=["patch"])
     def close(self, request, pk=None):
