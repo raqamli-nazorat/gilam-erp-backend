@@ -517,8 +517,8 @@ footer{
 
       <!-- ============ FINANCE ============ -->
       <section id="finance">
-        <div class="section-h"><h2>Moliya (Finance)</h2><span class="count">5 resurs</span></div>
-        <p class="section-intro">Moliyaviy ma'lumotnomalar. Kontragent turi va kontragentlar, valyutalar va ularning kurslari, hisoblash/ushlab qolish turlari.</p>
+        <div class="section-h"><h2>Moliya (Finance)</h2><span class="count">6 resurs</span></div>
+        <p class="section-intro">Moliyaviy ma'lumotnomalar. Kontragent turi va kontragentlar, valyutalar va ularning kurslari, hisoblash/ushlab qolish turlari va ularni xodimga belgilash hujjatlari.</p>
         <div id="finance-resources"></div>
       </section>
 
@@ -798,14 +798,34 @@ const RESOURCES = [
     id:"accrual-retentions", group:"finance", title:"Hisoblash / ushlab qolish", base:"/api/v1/finance/accrual-retentions/",
     app:"finance", model:"accrualretention", activeOnly:false,
     search:["name","currency__short_name"], ordering:["name","value","created_at"],
-    filters:[["name","nomi bo'yicha (icontains)"],["type","percent/fix_summa"],["currency","valyuta UUID (bir nechta)"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    filters:[["name","nomi bo'yicha (icontains)"],["type","percent/fix_summa"],["is_retention","true — ushlab qolish, false — hisoblash"],["currency","valyuta UUID (bir nechta)"],["start_date / end_date","yaratilgan sana oralig'i"]],
     writeFields:[
       ["name","string","Ha","Nomi"],
+      ["is_retention","bool","Yo'q","true — ushlab qolish (oylikdan ayiriladi), false — hisoblash (qo'shiladi). Standart: false"],
       ["type","string","Ha","percent (foiz) yoki fix_summa (belgilangan summa)"],
       ["currency","uuid","Ha","Valyuta id'si"],
       ["value","decimal","Ha","type=percent bo'lsa 0–100, aks holda >= 0"]
     ],
-    example:{id:"a1b2c3d4-0003-4a10-8b20-3c4d5e6f7083",name:"Soliq",type:"percent",currency_info:{id:"a1b2c3d4-0004-4a10-8b20-3c4d5e6f7084",name:"O'zbekiston so'mi",short_name:"UZS"},value:"12.00",created_at:"2026-02-01T09:00:00+05:00",updated_at:"2026-02-01T09:00:00+05:00"}
+    example:{id:"a1b2c3d4-0003-4a10-8b20-3c4d5e6f7083",is_retention:true,name:"Soliq",type:"percent",currency_info:{id:"a1b2c3d4-0004-4a10-8b20-3c4d5e6f7084",name:"O'zbekiston so'mi",short_name:"UZS"},value:"12.00",created_at:"2026-02-01T09:00:00+05:00",updated_at:"2026-02-01T09:00:00+05:00"}
+  },
+  {
+    id:"accrual-retention-documents", group:"finance", title:"Xodimga ushlanma / qo'shimcha belgilash", base:"/api/v1/finance/accrual-retention-documents/",
+    app:"finance", model:"accrualretentiondocument", activeOnly:true,
+    search:["employee__full_name","employee__phone_number","accrual_retention__name"], ordering:["date","created_at","updated_at"],
+    filters:[["branch","filial UUID"],["employee","xodim UUID"],["accrual_retention","hisoblash / ushlab qolish UUID"],["is_retention","true — faqat ushlanmalar, false — faqat qo'shimchalar"],["status","draft/approved/cancelled"],["date_from / date_to","sana oralig'i (YYYY-MM-DD)"]],
+    writeFields:[
+      ["branch","uuid","Ha","Filial id'si"],
+      ["employee","uuid","Ha","Xodim id'si — tanlangan filialga tegishli va hozir ishlab turgan bo'lishi kerak"],
+      ["accrual_retention","uuid","Ha","Ma'lumotnomadagi hisoblash / ushlab qolish id'si (faol bo'lishi kerak)"],
+      ["date","datetime","Ha","Hujjat sanasi; kelajakdagi sana ham mumkin"]
+    ],
+    example:{id:"b1c2d3e4-0005-4b20-9c30-4d5e6f708194",branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},employee_info:{id:"3f2e1d0c-9b8a-4756-8d3f-2e1d0c9b8a76",full_name:"Aziz Rahimov"},accrual_retention_info:{id:"a1b2c3d4-0003-4a10-8b20-3c4d5e6f7083",name:"Kechikish jarimasi",type:"fix_summa",is_retention:true,value:"50000.00",currency:"a1b2c3d4-0004-4a10-8b20-3c4d5e6f7084"},date:"2026-01-15T10:00:00+05:00",status:"draft",created_at:"2026-01-15T10:05:00+05:00",updated_at:"2026-01-15T10:05:00+05:00"},
+    extraNote:"Xodimga mukofot (<span class=\"mono\">is_retention=false</span>) yoki jarima/ushlanma (<span class=\"mono\">is_retention=true</span>) belgilaydi; keyinchalik oylik hisobida qo'shiladi yoki ayiriladi. <span class=\"mono\">status</span> body'da yuborilmaydi (e'tiborga olinmaydi), yangi hujjat doim <span class=\"mono\">draft</span>; u faqat <span class=\"mono\">approve</span> / <span class=\"mono\">cancel</span> orqali o'zgaradi.<br><br><b>Holatlar:</b> <span class=\"mono\">draft → approved</span>; <span class=\"mono\">draft</span> yoki <span class=\"mono\">approved → cancelled</span> (yakuniy). Faqat <span class=\"mono\">draft</span> hujjatni tahrirlash va o'chirish mumkin, aks holda 400.<br><br><b>Tekshiruvlar (400):</b> xodim boshqa filialniki bo'lsa; xodim ishdan bo'shatilgan yoki ishga olinmagan bo'lsa; ma'lumotnoma faol bo'lmasa; foydalanuvchining shu filialga ruxsati bo'lmasa. Bir xodimga bir kunga bir xil turni bir necha marta belgilash mumkin. Foydalanuvchi faqat o'z filiallari hujjatlarini ko'radi.",
+    actions:[
+      {method:"POST",path:"/api/v1/finance/accrual-retention-documents/bulk-create/",title:"Ko'plab xodimga belgilash",desc:"Bir turni bir nechta xodimga bir so'rovda belgilaydi. Body: {\"branch\": uuid, \"accrual_retention\": uuid, \"date\": datetime, \"employees\": [uuid, uuid, ...]}. Ro'yxat bo'sh bo'lmasligi va xodim takrorlanmasligi kerak; birortasi noto'g'ri bo'lsa (masalan, ishdan bo'shatilgan) hech narsa saqlanmaydi. Ruxsat: finance.add_accrualretentiondocument.",res:[{id:"b1c2d3e4-0005-4b20-9c30-4d5e6f708194",status:"draft",date:"2026-01-15T10:00:00+05:00","...":"..."},{id:"c2d3e4f5-0006-4c30-8d40-5e6f70819205",status:"draft",date:"2026-01-15T10:00:00+05:00","...":"..."}]},
+      {method:"POST",path:"/api/v1/finance/accrual-retention-documents/{id}/approve/",title:"Tasdiqlash",desc:"Qoralama hujjatni tasdiqlaydi; body kerak emas. Tasdiqlangach o'zgartirib yoki o'chirib bo'lmaydi. Hujjat draft bo'lmasa — 400. Ruxsat: finance.change_accrualretentiondocument.",res:{id:"b1c2d3e4-0005-4b20-9c30-4d5e6f708194",status:"approved","...":"..."}},
+      {method:"POST",path:"/api/v1/finance/accrual-retention-documents/{id}/cancel/",title:"Bekor qilish",desc:"Draft yoki tasdiqlangan hujjatni bekor qiladi (yakuniy holat); body kerak emas. Allaqachon bekor qilingan bo'lsa — 400. Ruxsat: finance.change_accrualretentiondocument.",res:{id:"b1c2d3e4-0005-4b20-9c30-4d5e6f708194",status:"cancelled","...":"..."}}
+    ]
   },
   {
     id:"counterparties", group:"finance", title:"Kontragentlar", base:"/api/v1/finance/counterparties/",
@@ -958,7 +978,7 @@ const GROUPS = [
   {key:"org", label:"Tashkilot", links:[["countries","Davlatlar"],["regions","Viloyatlar"],["districts","Tumanlar"],["organizations","Tashkilotlar"],["branches","Filiallar"]]},
   {key:"catalog", label:"Katalog", links:[["qualities","Sifatlar"],["units","O'lchov birliklari"],["colors","Ranglar"],["designs","Dizaynlar"],["design-photos","Dizayn fotosuratlari"],["product-parties","Mahsulot partiyalari"]]},
   {key:"warehouse", label:"Ombor", links:[["warehouses","Omborlar"]]},
-  {key:"finance", label:"Moliya", links:[["counterparty-types","Kontragent turlari"],["counterparties","Kontragentlar"],["currencies","Valyutalar"],["currency-ledgers","Valyuta kurslari"],["accrual-retentions","Hisoblash / ushlab qolish"]]},
+  {key:"finance", label:"Moliya", links:[["counterparty-types","Kontragent turlari"],["counterparties","Kontragentlar"],["currencies","Valyutalar"],["currency-ledgers","Valyuta kurslari"],["accrual-retentions","Hisoblash / ushlab qolish"],["accrual-retention-documents","Xodimga ushlanma / qo'shimcha"]]},
   {key:"hr", label:"HR", links:[["employees","Xodimlar"],["positions","Lavozimlar"],["recruitment-dismissals","Ishga olish / bo'shatish"],["work-schedules","Ish grafiklari"],["work-schedule-items","Ish grafigi kunlari"],["timesheets","Xodimlar tabeli"],["timesheet-items","Tabel qatorlari"]]},
   {key:"audits", label:"Audit", links:[["audit-logs","Loglar"]]}
 ];
