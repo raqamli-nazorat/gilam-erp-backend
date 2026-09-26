@@ -1,3 +1,7 @@
+from .calculating_salary import (
+    CalculatingSalaryCalculateSerializer,
+    CalculatingSalarySerializer,
+)
 from .employee import EmployeeSerializer
 from .employee_history import EmployeeEmploymentHistorySerializer
 from .employee_ledger import EmployeeLedgerSerializer
@@ -17,6 +21,8 @@ from .recruitment_dismissal import (
 from .work_schedule import WorkScheduleItemSerializer, WorkScheduleSerializer
 
 __all__ = [
+    "CalculatingSalaryCalculateSerializer",
+    "CalculatingSalarySerializer",
     "EmployeeDismissalSerializer",
     "EmployeeEmploymentHistorySerializer",
     "EmployeeLedgerSerializer",

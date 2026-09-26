@@ -12,6 +12,7 @@ class AccrualRetentionSerializer(BaseModelSerializer):
         model = AccrualRetention
         fields = [
             "id",
+            "is_retention",
             "name",
             "type",
             "currency",

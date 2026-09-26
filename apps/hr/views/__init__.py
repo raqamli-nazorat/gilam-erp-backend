@@ -1,3 +1,4 @@
+from .calculating_salary import CalculatingSalaryViewSet
 from .employee import EmployeeViewSet
 from .employee_ledger import EmployeeLedgerViewSet
 from .employee_timesheet import EmployeeTimesheetItemViewSet, EmployeeTimesheetViewSet
@@ -6,6 +7,7 @@ from .recruitment_dismissal import RecruitmentDismissalViewSet
 from .work_schedule import WorkScheduleItemViewSet, WorkScheduleViewSet
 
 __all__ = [
+    "CalculatingSalaryViewSet",
     "EmployeeLedgerViewSet",
     "EmployeeTimesheetItemViewSet",
     "EmployeeTimesheetViewSet",
