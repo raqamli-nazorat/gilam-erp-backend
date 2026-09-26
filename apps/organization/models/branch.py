@@ -47,10 +47,18 @@ class Branch(BaseModel):
         verbose_name="Yopilish sababi",
     )
     latitude = models.DecimalField(
-        max_digits=10, decimal_places=7, verbose_name="Kenglik (Latitude)"
+        max_digits=10,
+        decimal_places=7,
+        null=True,
+        blank=True,
+        verbose_name="Kenglik (Latitude)",
     )
     longitude = models.DecimalField(
-        max_digits=10, decimal_places=7, verbose_name="Uzunlik (Longitude)"
+        max_digits=10,
+        decimal_places=7,
+        null=True,
+        blank=True,
+        verbose_name="Uzunlik (Longitude)",
     )
     radius = models.PositiveIntegerField(
         default=50,

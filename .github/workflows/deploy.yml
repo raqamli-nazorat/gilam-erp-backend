@@ -46,6 +46,8 @@ jobs:
             
             echo "4. Servislarni qayta yoqish"
             sudo systemctl restart gilam-erp-backend
+            sudo systemctl restart gilam-celery-worker
+            sudo systemctl restart gilam-celery-beat
             sudo systemctl reload nginx
             
             echo "Muvaffaqiyatli yakunlandi!"

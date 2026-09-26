@@ -293,7 +293,7 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BEAT_SCHEDULE = {
     "sync-currency-rates-daily": {
         "task": "apps.finance.tasks.sync_currency_rates",
-        "schedule": crontab(hour=9, minute=0),  # har kuni 09:00 (Asia/Tashkent)
+        "schedule": crontab(hour=1, minute=0),  # har kuni 01:00 (Asia/Tashkent)
     },
 }
 
