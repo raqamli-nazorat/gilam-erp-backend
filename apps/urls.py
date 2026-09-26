@@ -1,6 +1,9 @@
 from django.urls import include, path
 
+from apps.base.counts import CountsView
+
 urlpatterns = [
+    path("counts/", CountsView.as_view(), name="counts"),
     path("audits/", include("apps.audits.urls")),
     path("auth/", include("apps.accounts.auth_urls")),
     path("accounts/", include("apps.accounts.urls")),
