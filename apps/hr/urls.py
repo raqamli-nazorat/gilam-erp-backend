@@ -2,6 +2,8 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     EmployeeLedgerViewSet,
+    EmployeeTimesheetItemViewSet,
+    EmployeeTimesheetViewSet,
     EmployeeViewSet,
     PositionViewSet,
     RecruitmentDismissalViewSet,
@@ -22,5 +24,9 @@ router.register(
     basename="recruitment-dismissal",
 )
 router.register("employee-ledgers", EmployeeLedgerViewSet, basename="employee-ledger")
+router.register("timesheets", EmployeeTimesheetViewSet, basename="timesheet")
+router.register(
+    "timesheet-items", EmployeeTimesheetItemViewSet, basename="timesheet-item"
+)
 
 urlpatterns = router.urls
