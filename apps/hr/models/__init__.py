@@ -1,3 +1,4 @@
+from .calculating_salary import CalculatingSalary
 from .employee import Employee
 from .employee_ledger import EmployeeLedger
 from .employee_timesheet import EmployeeTimesheet, EmployeeTimesheetItem
@@ -6,6 +7,7 @@ from .recruitment_dismissal import RecruitmentDismissal
 from .work_schedule import Weekday, WorkSchedule, WorkScheduleItem
 
 __all__ = [
+    "CalculatingSalary",
     "Employee",
     "EmployeeLedger",
     "EmployeeTimesheet",

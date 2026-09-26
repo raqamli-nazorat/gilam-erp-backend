@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from apps.base.models import BaseModel
 
@@ -31,6 +32,7 @@ class EmployeeLedger(BaseModel):
         db_index=True,
         verbose_name="Turi",
     )
+    date = models.DateTimeField(default=timezone.now, verbose_name="Sana")
 
     class Meta:
         db_table = "hr_employee_ledger"

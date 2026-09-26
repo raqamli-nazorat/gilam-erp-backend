@@ -10,6 +10,12 @@ class AccrualRetention(BaseModel):
         PERCENT = "percent", "Foiz"
         FIX_SUMMA = "fix_summa", "Belgilangan summa"
 
+    is_retention = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Ushlab qolishmi",
+        help_text="True — ushlab qolish (ayiriladi), False — hisoblash (qo'shiladi).",
+    )
     name = models.CharField(max_length=255, verbose_name="Nomi")
     type = models.CharField(
         max_length=20,
