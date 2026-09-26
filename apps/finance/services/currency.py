@@ -83,3 +83,27 @@ def sync_ledgers(day: date | None = None) -> list[CurrencyLedger]:
             ledger.save(update_fields=["value", "updated_at"])
         ledgers.append(ledger)
     return ledgers
+
+
+def get_rate(currency: Currency, day: date) -> Decimal:
+    """Valyutaning berilgan sanadagi so'mdagi kursini qaytaradi.
+
+    UZS uchun 1. Shu sanada kurs bo'lmasa — undan oldingi oxirgi kun kursi
+    (dam olish kunlari uchun). Umuman kurs topilmasa — xato.
+    """
+    if currency.short_name == "UZS":
+        return Decimal(1)
+    ledger = (
+        CurrencyLedger.objects.active()
+        .filter(currency=currency, day__lte=day)
+        .order_by("-day")
+        .first()
+    )
+    if ledger is None:
+        raise ValidationError(
+            {
+                "currency": f"{currency.short_name} uchun {day} sanasiga "
+                "yoki undan oldin kurs topilmadi."
+            }
+        )
+    return ledger.value

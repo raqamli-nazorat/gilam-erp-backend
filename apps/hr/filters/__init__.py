@@ -1,3 +1,4 @@
+from .calculating_salary import CalculatingSalaryFilter
 from .employee import EmployeeFilter
 from .employee_ledger import EmployeeLedgerFilter
 from .employee_timesheet import EmployeeTimesheetFilter, EmployeeTimesheetItemFilter
@@ -6,6 +7,7 @@ from .recruitment_dismissal import RecruitmentDismissalFilter
 from .work_schedule import WorkScheduleFilter, WorkScheduleItemFilter
 
 __all__ = [
+    "CalculatingSalaryFilter",
     "EmployeeFilter",
     "EmployeeLedgerFilter",
     "EmployeeTimesheetFilter",

@@ -1,4 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -61,6 +62,7 @@ class AccrualRetentionDocumentViewSet(BaseManageViewSet):
         )
         return Response(output.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(request=None, responses=AccrualRetentionDocumentSerializer)
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         """Qoralama hujjatni tasdiqlaydi."""
@@ -71,6 +73,7 @@ class AccrualRetentionDocumentViewSet(BaseManageViewSet):
             ).data
         )
 
+    @extend_schema(request=None, responses=AccrualRetentionDocumentSerializer)
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         """Hujjatni bekor qiladi."""

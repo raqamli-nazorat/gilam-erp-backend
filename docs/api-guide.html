@@ -524,8 +524,8 @@ footer{
 
       <!-- ============ HR ============ -->
       <section id="hr">
-        <div class="section-h"><h2>HR</h2><span class="count">7 resurs</span></div>
-        <p class="section-intro">Xodimlar, lavozimlar, ishga olish/bo'shatish tarixi, ish grafiklari va grafik kunlari (bayram/qisman ish kuni), xodimlar tabeli va tabel qatorlari (oylik ish vaqti hisobi). <span class="mono">Xodim daftari</span> (<span class="mono">/api/v1/hr/employee-ledgers/</span>) endpointi ham mavjud, lekin hozircha shu hujjatga qo'shilmagan.</p>
+        <div class="section-h"><h2>HR</h2><span class="count">8 resurs</span></div>
+        <p class="section-intro">Xodimlar, lavozimlar, ishga olish/bo'shatish tarixi, ish grafiklari va grafik kunlari (bayram/qisman ish kuni), xodimlar tabeli va tabel qatorlari (oylik ish vaqti hisobi), oylik hisobi (oylik hisoblash hujjati). <span class="mono">Xodim daftari</span> (<span class="mono">/api/v1/hr/employee-ledgers/</span>) endpointi ham mavjud, lekin hozircha shu hujjatga qo'shilmagan.</p>
         <div id="hr-resources"></div>
       </section>
 
@@ -968,6 +968,27 @@ const RESOURCES = [
     ],
     example:{id:"ac1d2e3f-4051-4263-b475-8697a8b9c0d1",employee_timesheet_info:{id:"9b0c1d2e-3f40-4152-a364-758697a8b9c0",branch:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",for_month:1,status:"draft"},employee_info:{id:"3f2e1d0c-9b8a-4756-8d3f-2e1d0c9b8a76",full_name:"Aziz Rahimov"},date:"2026-01-10T00:00:00+05:00",work_hour_in_plan:"8.00",input_date:"2026-01-10T09:00:00+05:00",output_lunch_date:"2026-01-10T13:00:00+05:00",input_lunch_date:"2026-01-10T14:00:00+05:00",output_date:"2026-01-10T18:00:00+05:00",work_hour_in_fact:"8.00",created_at:"2026-01-10T18:05:00+05:00",updated_at:"2026-01-10T18:05:00+05:00"},
     extraNote:"<b>Tekshiruvlar (400):</b> tabel <span class=\"mono\">draft</span> bo'lmasa qator qo'shib, o'zgartirib yoki o'chirib bo'lmaydi; <span class=\"mono\">date</span> oyi tabel oyiga mos kelmasa; xodim boshqa filialniki bo'lsa; shu xodim uchun shu kunga qator allaqachon bor bo'lsa; vaqtlar tartibi buzilsa (kelish ≤ tushlikka chiqish ≤ tushlikdan kelish ≤ ketish); tushlik vaqtlaridan faqat bittasi yuborilsa.<br><br><b>Avtomatik hisob:</b> <span class=\"mono\">work_hour_in_fact</span> yuborilmasa, (ketish − kelish) − (tushlikdan kelish − tushlikka chiqish) soatlarda, 2 xonagacha yaxlitlab yoziladi. Ro'yxat foydalanuvchiga ruxsat etilgan filiallar tabellari bilan cheklanadi."
+  },
+  {
+    id:"calculating-salaries", group:"hr", title:"Oylik hisobi (oylik hisoblash hujjati)", base:"/api/v1/hr/calculating-salaries/",
+    app:"hr", model:"calculatingsalary", activeOnly:true,
+    search:["employee__full_name","employee__phone_number","branch__name"], ordering:["for_month","amount","created_at","updated_at"],
+    filters:[["branch","filial UUID"],["employee","xodim UUID"],["currency","valyuta UUID"],["for_month","oy raqami (1–12)"],["status","draft/approved/cancelled"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[
+      ["branch","uuid","Ha","Filial id'si"],
+      ["employee","uuid","Ha","Xodim id'si — tanlangan filialga tegishli bo'lishi kerak"],
+      ["for_month","int","Ha","Oy raqami: 1=Yanvar … 12=Dekabr"],
+      ["amount","decimal","Yo'q","Oylik summasi, UZS da (>= 0)"],
+      ["currency","uuid","Ha","Valyuta id'si (faol bo'lishi kerak)"],
+      ["currency_amount","decimal","Yo'q","Tanlangan valyutadagi summa (>= 0)"]
+    ],
+    example:{id:"d1e2f3a4-0007-4d40-9e50-6f708192a316",branch_info:{id:"7b6a5c4d-3e2f-41a0-9b8c-0d1e2f3a4b5c",name:"Chilonzor filiali"},employee_info:{id:"3f2e1d0c-9b8a-4756-8d3f-2e1d0c9b8a76",full_name:"Aziz Rahimov"},for_month:1,amount:"4625000.00",currency_info:{id:"3acb2762-718b-47e8-8eb1-707e593e3537",name:"O'zbekiston so'mi",short_name:"UZS"},currency_amount:"4625000.00",status:"draft",created_at:"2026-02-01T09:00:00+05:00",updated_at:"2026-02-01T09:00:00+05:00"},
+    extraNote:"Qo'lda yaratish (<span class=\"mono\">POST</span>) mumkin, lekin odatda <span class=\"mono\">calculate</span> orqali avtomatik hisoblanadi. <span class=\"mono\">status</span> body'da yuborilmaydi (e'tiborga olinmaydi), yangi qator doim <span class=\"mono\">draft</span>; u faqat <span class=\"mono\">approve</span> / <span class=\"mono\">cancel</span> orqali o'zgaradi. Faqat <span class=\"mono\">draft</span> qatorni tahrirlash va o'chirish mumkin (aks holda 400). Bir xodimga bir oyda bitta <span class=\"mono\">approved</span> oylik bo'lishi mumkin (yil <span class=\"mono\">created_at</span> bo'yicha aniqlanadi, modelda yil maydoni yo'q).<br><br><b>Hisoblash formulasi (<span class=\"mono\">calculate</span>):</b> asosiy oylik = <span class=\"mono\">fix_summa</span> × (haqiqiy soat / rejadagi soat, ko'pi bilan 1); keyin oydagi <b>tasdiqlangan</b> <a href=\"#accrual-retention-documents\">hisoblash / ushlab qolish hujjatlari</a> qo'shiladi (<span class=\"mono\">is_retention=false</span>) yoki ayiriladi (<span class=\"mono\">true</span>). Foiz turi asosiy oylikdan olinadi, summa turi hujjat sanasidagi valyuta kursi bilan so'mga o'giriladi. Natija manfiy bo'lsa — 0. Soatlar faqat <b>tasdiqlangan</b> <a href=\"#timesheets\">tabeldan</a> olinadi.",
+    actions:[
+      {method:"POST",path:"/api/v1/hr/calculating-salaries/calculate/",title:"Oylikni avtomatik hisoblash",desc:"Body: {\"branch\": uuid, \"for_month\": 1–12, \"year\": 2026 (ixtiyoriy, standart — joriy yil)}. Filialda hozir ishlab turgan xodimlar uchun oylik qatorlarini (draft) yaratadi; mavjud draft yangilanadi, tasdiqlangan oyligi bor xodim o'tkazib yuboriladi. Faqat belgilangan summa (fixed_amount) turi hisoblanadi; qolganlari, tabelida soati yo'q va summasi kiritilmagan xodimlar skipped ro'yxatiga sababi bilan tushadi. Filial va oy uchun tasdiqlangan tabel bo'lmasa, UZS valyutasi yoki kerakli kurs topilmasa — 400 (hech narsa saqlanmaydi). Ruxsat: hr.add_calculatingsalary.",res:{salaries:[{id:"d1e2f3a4-0007-4d40-9e50-6f708192a316",for_month:1,amount:"4625000.00",status:"draft","...":"..."}],skipped:[{employee:"85c19842-f683-479e-b1a5-a40fe806ea5d",full_name:"Bobur Karimov",reason:"Oylik turi «Savdodan foiz» hisoblanmaydi (faqat belgilangan summa)."}]}},
+      {method:"POST",path:"/api/v1/hr/calculating-salaries/{id}/approve/",title:"Tasdiqlash",desc:"Qoralama oylikni tasdiqlaydi; body kerak emas. Draft bo'lmasa yoki xodimning shu oyda tasdiqlangan oyligi bor bo'lsa — 400. Ruxsat: hr.change_calculatingsalary.",res:{id:"d1e2f3a4-0007-4d40-9e50-6f708192a316",status:"approved","...":"..."}},
+      {method:"POST",path:"/api/v1/hr/calculating-salaries/{id}/cancel/",title:"Bekor qilish",desc:"Draft yoki tasdiqlangan oylikni bekor qiladi (yakuniy holat); body kerak emas. Allaqachon bekor qilingan bo'lsa — 400. Ruxsat: hr.change_calculatingsalary.",res:{id:"d1e2f3a4-0007-4d40-9e50-6f708192a316",status:"cancelled","...":"..."}}
+    ]
   }
 ];
 
@@ -979,7 +1000,7 @@ const GROUPS = [
   {key:"catalog", label:"Katalog", links:[["qualities","Sifatlar"],["units","O'lchov birliklari"],["colors","Ranglar"],["designs","Dizaynlar"],["design-photos","Dizayn fotosuratlari"],["product-parties","Mahsulot partiyalari"]]},
   {key:"warehouse", label:"Ombor", links:[["warehouses","Omborlar"]]},
   {key:"finance", label:"Moliya", links:[["counterparty-types","Kontragent turlari"],["counterparties","Kontragentlar"],["currencies","Valyutalar"],["currency-ledgers","Valyuta kurslari"],["accrual-retentions","Hisoblash / ushlab qolish"],["accrual-retention-documents","Xodimga ushlanma / qo'shimcha"]]},
-  {key:"hr", label:"HR", links:[["employees","Xodimlar"],["positions","Lavozimlar"],["recruitment-dismissals","Ishga olish / bo'shatish"],["work-schedules","Ish grafiklari"],["work-schedule-items","Ish grafigi kunlari"],["timesheets","Xodimlar tabeli"],["timesheet-items","Tabel qatorlari"]]},
+  {key:"hr", label:"HR", links:[["employees","Xodimlar"],["positions","Lavozimlar"],["recruitment-dismissals","Ishga olish / bo'shatish"],["work-schedules","Ish grafiklari"],["work-schedule-items","Ish grafigi kunlari"],["timesheets","Xodimlar tabeli"],["timesheet-items","Tabel qatorlari"],["calculating-salaries","Oylik hisobi"]]},
   {key:"audits", label:"Audit", links:[["audit-logs","Loglar"]]}
 ];
 

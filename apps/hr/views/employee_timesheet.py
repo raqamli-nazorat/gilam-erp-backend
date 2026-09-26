@@ -1,5 +1,6 @@
 from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
@@ -35,12 +36,14 @@ class EmployeeTimesheetViewSet(BaseManageViewSet):
         ensure_draft(instance)
         super().perform_destroy(instance)
 
+    @extend_schema(request=None, responses=EmployeeTimesheetSerializer)
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         """Qoralama tabelni tasdiqlaydi."""
         timesheet = approve_timesheet(self.get_object())
         return Response(self.get_serializer(timesheet).data)
 
+    @extend_schema(request=None, responses=EmployeeTimesheetSerializer)
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         """Tabelni bekor qiladi."""
