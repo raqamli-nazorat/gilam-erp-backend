@@ -15,6 +15,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -281,6 +282,20 @@ AWS_SECRET_ACCESS_KEY = env.str("AWS_SECRET_ACCESS_KEY", default="")
 AWS_STORAGE_BUCKET_NAME = env.str("AWS_STORAGE_BUCKET_NAME", default="")
 AWS_S3_ENDPOINT_URL = env.str("AWS_S3_ENDPOINT_URL", default="")
 AWS_S3_ADDRESSING_STYLE = env.str("AWS_S3_ADDRESSING_STYLE", default="path")
+
+# Celery (fon vazifalari) — broker: Redis (kesh bilan aralashmasligi uchun alohida db)
+
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/4")
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# Rejalashtirilgan vazifalar (jadval kodda — istalgan serverda `celery beat` bilan ishlaydi)
+CELERY_BEAT_SCHEDULE = {
+    "sync-currency-rates-daily": {
+        "task": "apps.finance.tasks.sync_currency_rates",
+        "schedule": crontab(hour=9, minute=0),  # har kuni 09:00 (Asia/Tashkent)
+    },
+}
 
 # Logging
 
