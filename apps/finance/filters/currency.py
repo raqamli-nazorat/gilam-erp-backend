@@ -22,6 +22,9 @@ class CurrencyFilter(django_filters.FilterSet):
 
 class CurrencyLedgerFilter(django_filters.FilterSet):
     currency = UUIDInFilter(field_name="currency_id", lookup_expr="in")
+    short_name = django_filters.CharFilter(
+        field_name="currency__short_name", lookup_expr="iexact", label="Valyuta kodi"
+    )
     day_from = django_filters.DateFilter(
         field_name="day", lookup_expr="gte", label="Kurs sanasi (dan)"
     )
@@ -37,4 +40,11 @@ class CurrencyLedgerFilter(django_filters.FilterSet):
 
     class Meta:
         model = CurrencyLedger
-        fields = ["currency", "day_from", "day_to", "start_date", "end_date"]
+        fields = [
+            "currency",
+            "short_name",
+            "day_from",
+            "day_to",
+            "start_date",
+            "end_date",
+        ]

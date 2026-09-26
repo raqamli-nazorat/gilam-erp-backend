@@ -769,26 +769,30 @@ const RESOURCES = [
   },
   {
     id:"currencies", group:"finance", title:"Valyutalar", base:"/api/v1/finance/currencies/",
-    app:"finance", model:"currency", activeOnly:false,
+    app:"finance", model:"currency", activeOnly:false, ops:["list","create","delete"],
     search:["name","short_name"], ordering:["name","short_name","created_at"],
     filters:[["name","nomi bo'yicha (icontains)"],["short_name","qisqa nomi bo'yicha (icontains)"],["start_date / end_date","yaratilgan sana oralig'i"]],
     writeFields:[
       ["name","string","Ha","Valyuta nomi, masalan \"AQSh dollari\""],
-      ["short_name","string","Ha","Qisqa nomi, masalan \"USD\""]
+      ["short_name","string","Ha","Qisqa nomi, masalan \"USD\". Faqat Markaziy bankdagi valyutalardan (avval GET /currencies/available/?search=usd bilan qidiring; kod katta harfga o'tkaziladi)"]
     ],
-    example:{id:"a1b2c3d4-0001-4a10-8b20-3c4d5e6f7081",name:"AQSh dollari",short_name:"USD",created_at:"2026-02-01T09:00:00+05:00",updated_at:"2026-02-01T09:00:00+05:00"}
+    example:{id:"a1b2c3d4-0001-4a10-8b20-3c4d5e6f7081",name:"AQSh dollari",short_name:"USD",created_at:"2026-02-01T09:00:00+05:00",updated_at:"2026-02-01T09:00:00+05:00"},
+    extraNote:"Valyuta ro'yxat, yaratish va o'chirish (soft-delete; kurslari saqlanadi, sync uni o'tkazib yuboradi) orqali boshqariladi, tahrirlash yo'q. Tanlash uchun valyutalar ro'yxati kodda tayyor turadi (bazaga saqlanmaydi). Yaratishdan oldin <span class=\"mono\">available</span> bilan Markaziy bankdagi valyutani toping va <span class=\"mono\">name</span> + <span class=\"mono\">short_name</span> ni shundan oling. Bankda yo'q kod yoki avval yaratilgan valyuta &mdash; 400; bank ishlamasa &mdash; 503.",
+    actions:[
+      {method:"GET",path:"/api/v1/finance/currencies/available/?search=usd",desc:"Tayyor ro'yxatdan Markaziy bank valyutalarini kod yoki nom (uz/en/ru) bo'yicha qidiradi (bankka so'rov ketmaydi). exists=true — valyuta bazada allaqachon bor. Ruxsat: finance.view_currency.",res:[{short_name:"USD",name:"AQSH dollari",exists:false}]}
+    ]
   },
   {
     id:"currency-ledgers", group:"finance", title:"Valyuta kurslari", base:"/api/v1/finance/currency-ledgers/",
-    app:"finance", model:"currencyledger", activeOnly:false,
+    app:"finance", model:"currencyledger", activeOnly:false, ops:["list"],
     search:["currency__name","currency__short_name"], ordering:["day","value","created_at"],
-    filters:[["currency","valyuta UUID (bir nechta)"],["day_from / day_to","kurs sanasi oralig'i"],["start_date / end_date","yaratilgan sana oralig'i"]],
-    writeFields:[
-      ["currency","uuid","Ha","Valyuta id'si"],
-      ["value","decimal","Ha","O'zbek so'miga nisbatan qiymat (>= 0)"],
-      ["day","date","Ha","Kurs sanasi, YYYY-MM-DD"]
-    ],
-    example:{id:"a1b2c3d4-0002-4a10-8b20-3c4d5e6f7082",currency_info:{id:"a1b2c3d4-0001-4a10-8b20-3c4d5e6f7081",name:"AQSh dollari",short_name:"USD"},value:"12650.00",day:"2026-09-02",created_at:"2026-09-02T09:00:00+05:00",updated_at:"2026-09-02T09:00:00+05:00"}
+    filters:[["currency","valyuta UUID (bir nechta)"],["short_name","valyuta kodi, masalan USD"],["day_from / day_to","kurs sanasi oralig'i"],["start_date / end_date","yaratilgan sana oralig'i"]],
+    writeFields:[],
+    example:{id:"a1b2c3d4-0002-4a10-8b20-3c4d5e6f7082",currency_info:{id:"a1b2c3d4-0001-4a10-8b20-3c4d5e6f7081",name:"AQSh dollari",short_name:"USD"},value:"12650.00",day:"2026-09-02",created_at:"2026-09-02T09:00:00+05:00",updated_at:"2026-09-02T09:00:00+05:00"},
+    extraNote:"Kurslar qo'lda kiritilmaydi &mdash; faqat Markaziy bankdan <span class=\"mono\">sync</span> orqali olinadi (har kuni <span class=\"mono\">python manage.py sync_currency_rates</span> cron orqali ham). Qiymat 1 birlik uchun so'mda (kurs / nominal), 2 xonagacha yaxlitlanadi. Bir valyuta va kun uchun kurs qayta olinsa yangilanadi.",
+    actions:[
+      {method:"POST",path:"/api/v1/finance/currency-ledgers/sync/",desc:"Markaziy bankdan kursni olib, bazadagi valyutalar uchun saqlaydi/yangilaydi. Body: {\"day\": \"2026-09-25\"} — ixtiyoriy, bo'sh bo'lsa bugun; kelajak sanasi — 400; bank ishlamasa — 503. Ruxsat: finance.add_currencyledger.",res:{day:"2026-09-25",count:1,results:[{id:"a1b2c3d4-0002-4a10-8b20-3c4d5e6f7082",currency_info:{id:"a1b2c3d4-0001-4a10-8b20-3c4d5e6f7081",name:"AQSH dollari",short_name:"USD"},value:"11830.87",day:"2026-09-25"}]}}
+    ]
   },
   {
     id:"accrual-retentions", group:"finance", title:"Hisoblash / ushlab qolish", base:"/api/v1/finance/accrual-retentions/",
@@ -989,12 +993,12 @@ document.getElementById('audit-res').textContent = j({
 function opsTable(r){
   const perm = (verb) => `${r.app}.${verb}_${r.model}`;
   const rows = [
-    ["GET", r.base, "Ro'yxat (sahifalangan, filter/search/ordering bilan)", perm("view")],
-    ["POST", r.base, "Yangi obyekt yaratish", perm("add")],
-    ["GET", r.base + "{id}/", "Bitta obyektni olish", perm("view")],
-    ["PUT / PATCH", r.base + "{id}/", "Yangilash — PUT to'liq, PATCH qisman", perm("change")],
-    ["DELETE", r.base + "{id}/", "O'chirish (soft-delete)", perm("delete")]
-  ];
+    ["GET", r.base, "Ro'yxat (sahifalangan, filter/search/ordering bilan)", perm("view"), "list"],
+    ["POST", r.base, "Yangi obyekt yaratish", perm("add"), "create"],
+    ["GET", r.base + "{id}/", "Bitta obyektni olish", perm("view"), "retrieve"],
+    ["PUT / PATCH", r.base + "{id}/", "Yangilash — PUT to'liq, PATCH qisman", perm("change"), "update"],
+    ["DELETE", r.base + "{id}/", "O'chirish (soft-delete)", perm("delete"), "delete"]
+  ].filter(row => !r.ops || r.ops.includes(row[4]));
   const mcls = {GET:"m-get",POST:"m-post","PUT / PATCH":"m-put",DELETE:"m-delete"};
   let html = '<div class="table-wrap"><table><thead><tr><th>Metod</th><th>Yo\'l</th><th>Tavsif</th><th>Ruxsat</th></tr></thead><tbody>';
   rows.forEach(([m,p,d,perm]) => {
@@ -1046,8 +1050,8 @@ function renderResource(r, container){
       <span class="chip">?ordering=${esc(r.ordering.join(' | '))}</span>
       ${chips(r.filters)}
     </div>
-    <div class="sub-h">So'rov maydonlari (POST / PATCH)</div>
-    ${writeTable(r.writeFields)}
+    ${r.writeFields.length ? `<div class="sub-h">So'rov maydonlari (POST / PATCH)</div>
+    ${writeTable(r.writeFields)}` : ''}
     <div class="sub-h">Javob namunasi (bitta obyekt)</div>
     <div class="codeblock"><pre id="ex-${r.id}"></pre><button class="copy-btn" data-target="ex-${r.id}">nusxa</button></div>
     ${r.extraNote ? `<div class="note">${r.extraNote}</div>` : ''}

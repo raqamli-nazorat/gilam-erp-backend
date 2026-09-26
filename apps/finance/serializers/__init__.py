@@ -1,7 +1,11 @@
 from .accrual_retention import AccrualRetentionSerializer
 from .counterparty import CounterpartySerializer
 from .counterparty_type import CounterpartyTypeSerializer
-from .currency import CurrencyLedgerSerializer, CurrencySerializer
+from .currency import (
+    CurrencyLedgerSerializer,
+    CurrencySerializer,
+    CurrencySyncSerializer,
+)
 
 __all__ = [
     "AccrualRetentionSerializer",
@@ -9,4 +13,5 @@ __all__ = [
     "CounterpartyTypeSerializer",
     "CurrencyLedgerSerializer",
     "CurrencySerializer",
+    "CurrencySyncSerializer",
 ]
