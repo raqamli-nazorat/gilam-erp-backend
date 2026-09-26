@@ -402,7 +402,7 @@ class EmployeeAPITestCase(HRBaseAPITestCase):
             rec_dism_date=datetime.date(2026, 1, 10),
         )
         self.client.force_authenticate(self.user_org1)
-        response = self.client.get("/api/v1/hr/employees/counts/")
+        response = self.client.get("/api/v1/hr/employees/count/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # self.user_org1 uchun ham avtomatik Employee yaratiladi (User.create_user
         # signali), shuning uchun bazaviy 1 ta nofaol xodim allaqachon bor.
@@ -904,7 +904,7 @@ class RecruitmentDismissalAPITestCase(HRBaseAPITestCase):
             )
 
         self.client.force_authenticate(self.admin)
-        response = self.client.get("/api/v1/counts/")
+        response = self.client.get("/api/v1/hr/recruitment-dismissals/count/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(

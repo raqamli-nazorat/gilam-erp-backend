@@ -167,7 +167,7 @@ class OrganizationAPITestCase(APITestCase):
         names = [item["name"] for item in response.data["results"]]
         self.assertNotIn("Yopilgan filial", names)
 
-    def test_branches_counts_action_returns_status_summary(self):
+    def test_branches_count_action_returns_status_summary(self):
         Branch.objects.create(
             name="Yopilgan filial",
             organization=self.organization,
@@ -176,7 +176,7 @@ class OrganizationAPITestCase(APITestCase):
             is_closed=True,
         )
 
-        response = self.client.get("/api/v1/organization/branches/counts/")
+        response = self.client.get("/api/v1/organization/branches/count/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {"active": 1, "closed": 1})
@@ -212,7 +212,7 @@ class OrganizationAPITestCase(APITestCase):
         names = [item["name"] for item in response.data["results"]]
         self.assertNotIn("To'xtatilgan Tashkilot", names)
 
-    def test_counts_action_returns_status_summary(self):
+    def test_count_action_returns_status_summary(self):
         inactive_organization = Organization.objects.create(
             name="To'xtatilgan Tashkilot",
             inn="333333333",
@@ -221,7 +221,7 @@ class OrganizationAPITestCase(APITestCase):
         )
         inactive_organization.delete()
 
-        response = self.client.get("/api/v1/organization/organizations/counts/")
+        response = self.client.get("/api/v1/organization/organizations/count/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {"active": 1, "suspended": 0})

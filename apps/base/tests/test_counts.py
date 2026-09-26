@@ -65,26 +65,38 @@ class CountsAPITestCase(APITestCase):
             user=self.blocked_user, type=UserBlockLog.Type.BLOCK, actor=self.admin
         )
 
-    def test_counts_returns_status_counts_and_model_counts(self):
-        response = self.client.get("/api/v1/counts/")
+    def test_model_count_actions_return_their_status_summaries(self):
+        responses = {
+            "organizations": self.client.get(
+                "/api/v1/organization/organizations/count/"
+            ),
+            "branches": self.client.get("/api/v1/organization/branches/count/"),
+            "users": self.client.get("/api/v1/accounts/users/count/"),
+        }
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.data
+        for response in responses.values():
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
         self.assertEqual(
-            data["organizations"],
-            {"all": 2, "active": 1, "suspended": 1, "users_count": 2},
+            responses["organizations"].data,
+            {"active": 1, "suspended": 1},
         )
-        self.assertEqual(data["branches"], {"all": 2, "active": 1, "closed": 1})
-        self.assertEqual(data["users"], {"all": 3, "active": 2, "blocked": 1})
-        empty_status_counts = {"all": 0, "draft": 0, "approved": 0, "cancelled": 0}
-        self.assertEqual(data["recruitments"], empty_status_counts)
-        self.assertEqual(data["dismissals"], empty_status_counts)
-        self.assertEqual(data["models"]["organization.organization"], 2)
-        self.assertEqual(data["models"]["organization.branch"], 2)
+        self.assertEqual(
+            responses["branches"].data,
+            {"active": 1, "closed": 1},
+        )
+        self.assertEqual(
+            responses["users"].data,
+            {"all": 3, "active": 2, "blocked": 1},
+        )
+        self.assertEqual(
+            self.client.get("/api/v1/counts/").status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
 
     def test_counts_requires_authentication(self):
         self.client.force_authenticate(user=None)
 
-        response = self.client.get("/api/v1/counts/")
+        response = self.client.get("/api/v1/organization/organizations/count/")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
