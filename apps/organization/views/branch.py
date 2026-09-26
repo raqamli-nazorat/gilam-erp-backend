@@ -13,7 +13,6 @@ from apps.warehouse.models import Warehouse
 from ..filters import BranchFilter
 from ..models import Branch
 from ..serializers import BranchSerializer
-from ..services import get_branch_status_counts
 
 
 class BranchViewSet(BaseManageViewSet):
@@ -81,8 +80,12 @@ class BranchViewSet(BaseManageViewSet):
         return None
 
     @action(detail=False, methods=["get"])
-    def counts(self, request):
-        return Response(get_branch_status_counts())
+    def count(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        return Response({
+            "active": queryset.filter(is_closed=False).count(),
+            "closed": queryset.filter(is_closed=True).count(),
+        })
 
     @action(detail=True, methods=["patch"])
     def close(self, request, pk=None):

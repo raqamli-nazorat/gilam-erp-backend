@@ -36,7 +36,7 @@ class EmployeeViewSet(BaseManageViewSet):
     ordering_fields = ["full_name", "created_at"]
 
     @action(detail=False, methods=["get"])
-    def counts(self, request):
+    def count(self, request):
         queryset = self.filter_queryset(self.get_queryset())
         return Response(get_employee_status_counts(queryset))
 

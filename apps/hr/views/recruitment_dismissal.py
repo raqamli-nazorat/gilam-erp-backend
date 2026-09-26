@@ -65,6 +65,35 @@ class RecruitmentDismissalViewSet(BaseManageViewSet):
             return RecruitmentDismissalBulkDismissSerializer
         return super().get_serializer_class()
 
+    @action(detail=False, methods=["get"])
+    def count(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        def status_counts(records):
+            return {
+                "all": records.count(),
+                "draft": records.filter(
+                    status=RecruitmentDismissal.Status.DRAFT
+                ).count(),
+                "approved": records.filter(
+                    status=RecruitmentDismissal.Status.APPROVED
+                ).count(),
+                "cancelled": records.filter(
+                    status=RecruitmentDismissal.Status.CANCELLED
+                ).count(),
+            }
+
+        return Response(
+            {
+                "recruitments": status_counts(
+                    queryset.filter(type=RecruitmentDismissal.Type.RECRUITMENT)
+                ),
+                "dismissals": status_counts(
+                    queryset.filter(type=RecruitmentDismissal.Type.DISMISSAL)
+                ),
+            }
+        )
+
     def create(self, request, *args, **kwargs):
         """Ishga olish yozuvini yaratadi, javobda to'liq (`type` bilan) yozuvni qaytaradi."""
         serializer = self.get_serializer(data=request.data)

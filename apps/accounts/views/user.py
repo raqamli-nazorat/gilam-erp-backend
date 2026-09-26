@@ -47,6 +47,13 @@ class UserViewSet(BaseManageViewSet):
             return qs
         return qs.filter(employee__organization=user.organization)
 
+    @action(detail=False, methods=["get"])
+    def count(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        total = queryset.count()
+        blocked = queryset.filter(latest_block_type=UserBlockLog.Type.BLOCK).count()
+        return Response({"all": total, "active": total - blocked, "blocked": blocked})
+
     @action(detail=True, methods=["patch"])
     def block(self, request, pk=None):
         """Foydalanuvchini bloklaydi (login taqiqlanadi, ro'yxatda ko'rinishda qoladi)."""

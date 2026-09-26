@@ -10,7 +10,6 @@ from apps.base.views import BaseManageViewSet
 from ..filters import OrganizationFilter
 from ..models import Branch, Organization
 from ..serializers import OrganizationSerializer
-from ..services import get_organization_status_counts
 
 
 class OrganizationViewSet(BaseManageViewSet):
@@ -88,8 +87,12 @@ class OrganizationViewSet(BaseManageViewSet):
         return None
 
     @action(detail=False, methods=["get"])
-    def counts(self, request):
-        return Response(get_organization_status_counts())
+    def count(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        return Response({
+            "active": queryset.filter(is_suspended=False).count(),
+            "suspended": queryset.filter(is_suspended=True).count(),
+        })
 
     @action(detail=True, methods=["patch"])
     def suspend(self, request, pk=None):
