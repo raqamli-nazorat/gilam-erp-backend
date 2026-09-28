@@ -5,6 +5,7 @@ from .employee_status import (
     get_active_recruitment_records,
     get_employee_employment_history,
     get_employee_status_counts,
+    get_latest_recruitment,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "get_active_recruitment_records",
     "get_employee_employment_history",
     "get_employee_status_counts",
+    "get_latest_recruitment",
 ]
