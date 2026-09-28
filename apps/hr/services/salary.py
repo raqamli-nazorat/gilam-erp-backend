@@ -62,13 +62,18 @@ def approve_salary(salary):
 
 
 @transaction.atomic
-def cancel_salary(salary):
-    """Qoralama yoki tasdiqlangan oylikni bekor qiladi."""
+def cancel_salary(salary, reason="", attachment=None):
+    """Qoralama yoki tasdiqlangan oylikni bekor qiladi (sabab va asos hujjat ixtiyoriy)."""
     salary = CalculatingSalary.objects.select_for_update().get(pk=salary.pk)
     if salary.status == CalculatingSalary.Status.CANCELLED:
         raise ValidationError("Oylik allaqachon bekor qilingan.")
     salary.status = CalculatingSalary.Status.CANCELLED
-    salary.save(update_fields=["status", "updated_at"])
+    salary.cancel_reason = reason
+    if attachment:
+        salary.cancel_attachment = attachment
+    salary.save(
+        update_fields=["status", "cancel_reason", "cancel_attachment", "updated_at"]
+    )
     return salary
 
 
