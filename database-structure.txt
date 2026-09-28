@@ -55,6 +55,9 @@ Table Branch {
   region          integer [ref: > Region.id, not null]
   district        integer [ref: > District.id, not null]
   address         text
+  latitude        decimal(10,7) [null]
+  longitude       decimal(10,7) [null]
+  radius          integer [default: 50] // metr, 50–500
   is_active       boolean [default: true]
   created_at      timestamp [default: `now()`]
   updated_at      timestamp [default: `now()`]
@@ -188,6 +191,8 @@ Table AccrualRetentionDocument {
   accrual_retention integer [ref: > AccrualRetention.id, not null]
   date              timestamp
   status            choice ("Qoralama", "Tasdiqlangan", "Bekor qilingan")
+  cancel_reason     text    [default: ""]
+  cancel_attachment file    [null]   // PDF/XLS/XLSX, 10 MB gacha
   is_active         boolean [default: true]
   created_at        timestamp [default: `now()`]
   updated_at        timestamp [default: `now()`]
@@ -204,6 +209,8 @@ Table CalculatingSalary {
   currency          integer [ref: > Currency.id, not null]
   currency_amount   float   [default: 0.00]
   status            choice ("Qoralama", "Tasdiqlangan", "Bekor qilingan")
+  cancel_reason     text    [default: ""]
+  cancel_attachment file    [null]   // PDF/XLS/XLSX, 10 MB gacha
   is_active         boolean [default: true]
   created_at        timestamp [default: `now()`]
   updated_at        timestamp [default: `now()`]
