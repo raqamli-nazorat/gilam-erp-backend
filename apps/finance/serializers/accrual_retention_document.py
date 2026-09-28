@@ -1,8 +1,10 @@
 from django.db import transaction
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.base.serializers import BaseModelSerializer
-from apps.hr.models import Employee
+from apps.hr.models import Employee, RecruitmentDismissal
+from apps.hr.services import get_latest_recruitment
 from apps.organization.models import Branch
 from apps.utils.validators import CANCEL_ATTACHMENT_VALIDATORS
 
@@ -35,8 +37,42 @@ def validate_document_context(user, branch, employees, accrual_retention):
     ensure_employees_employed(employees)
 
 
+class IdNameSerializer(serializers.Serializer):
+    """`{id, name}` ko'rinishidagi qisqa obyekt (faqat hujjat uchun)."""
+
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+
+
+class SalaryTypeSerializer(serializers.Serializer):
+    """Oylik turi: kod va o'zbekcha nomi (faqat hujjat uchun)."""
+
+    value = serializers.CharField()
+    label = serializers.CharField()
+
+
+class DocumentEmployeeDetailsSerializer(serializers.Serializer):
+    """Hujjat detailidagi "Xodim ma'lumotlari" bloki (faqat hujjat va format uchun)."""
+
+    organization_info = IdNameSerializer(allow_null=True)
+    position_info = IdNameSerializer(allow_null=True)
+    card_number = serializers.CharField(allow_blank=True)
+    hire_date = serializers.DateField(allow_null=True)
+    salary_type = SalaryTypeSerializer(allow_null=True)
+    fix_summa = serializers.DecimalField(
+        max_digits=15, decimal_places=2, allow_null=True
+    )
+    fix_percent = serializers.DecimalField(
+        max_digits=5, decimal_places=2, allow_null=True
+    )
+    phone_number = serializers.CharField(allow_blank=True)
+    last_login = serializers.DateTimeField(allow_null=True)
+
+
 class AccrualRetentionDocumentSerializer(BaseModelSerializer):
     """Xodimga hisoblash / ushlab qolish belgilash hujjati uchun serializer."""
+
+    employee_details = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = AccrualRetentionDocument
@@ -49,6 +85,7 @@ class AccrualRetentionDocumentSerializer(BaseModelSerializer):
             "status",
             "cancel_reason",
             "cancel_attachment",
+            "employee_details",
             "created_at",
             "updated_at",
         ]
@@ -60,6 +97,40 @@ class AccrualRetentionDocumentSerializer(BaseModelSerializer):
                 "fields": ["id", "name", "type", "is_retention", "value", "currency"]
             },
         }
+
+    def __init__(self, *args, **kwargs):
+        """`employee_details` faqat detail (`retrieve`) javobida qoladi."""
+        super().__init__(*args, **kwargs)
+        view = self.context.get("view")
+        if getattr(view, "action", None) != "retrieve":
+            self.fields.pop("employee_details", None)
+
+    @extend_schema_field(DocumentEmployeeDetailsSerializer)
+    def get_employee_details(self, obj):
+        """Xodimning tashkiloti, lavozimi, karta raqami, ish haqi turi, telefoni va oxirgi kirishi."""
+        employee = obj.employee
+        record = get_latest_recruitment(employee)
+        account = getattr(employee, "user_account", None)
+        organization = employee.organization
+        salary_type = record.salary_type if record else None
+        details = {
+            "organization_info": organization
+            and {"id": organization.pk, "name": organization.name},
+            "position_info": record
+            and {"id": record.position_id, "name": record.position.name},
+            "card_number": record.card_number if record else "",
+            "hire_date": record.rec_dism_date if record else None,
+            "salary_type": salary_type
+            and {
+                "value": salary_type,
+                "label": RecruitmentDismissal.SalaryType(salary_type).label,
+            },
+            "fix_summa": record.fix_summa if record else None,
+            "fix_percent": record.fix_percent if record else None,
+            "phone_number": employee.phone_number,
+            "last_login": account.last_login if account else None,
+        }
+        return DocumentEmployeeDetailsSerializer(details).data
 
     def validate(self, attrs):
         """Qoralama holat, filial/xodim moslik, ishlayotganlik va ma'lumotnomani tekshiradi."""

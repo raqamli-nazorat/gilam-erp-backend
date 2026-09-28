@@ -5,9 +5,11 @@ import tempfile
 from django.contrib.auth.models import Permission
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
+from apps.accounts.models import User
 from apps.finance.models import AccrualRetention, AccrualRetentionDocument, Currency
 from apps.finance.services.accrual_document import (
     approve_document,
@@ -249,6 +251,62 @@ class AccrualRetentionDocumentAPITestCase(AccrualDocumentBaseTestCase):
         self.assertEqual(response.data["count"], 1)
         response = self.client.get(f"{DOCUMENTS_URL}?date_from=2026-02-01")
         self.assertEqual(response.data["count"], 0)
+
+    def test_retrieve_document_employee_details_success(self):
+        self.employee.phone_number = "+998901112233"
+        self.employee.save()
+        document = self.create_document()
+        response = self.client.get(f"{DOCUMENTS_URL}{document.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        details = response.data["employee_details"]
+        self.assertEqual(details["organization_info"]["name"], self.org1.name)
+        self.assertEqual(details["position_info"]["name"], self.position.name)
+        self.assertEqual(details["card_number"], "8600123456789012")
+        self.assertEqual(str(details["hire_date"]), "2026-01-01")
+        self.assertEqual(
+            details["salary_type"],
+            {"value": "fixed_amount", "label": "Belgilangan summa"},
+        )
+        self.assertEqual(str(details["fix_summa"]), "5000000.00")
+        self.assertIsNone(details["fix_percent"])
+        self.assertEqual(details["phone_number"], "+998901112233")
+        self.assertIsNone(details["last_login"])
+
+    def test_retrieve_document_employee_last_login_success(self):
+        User.objects.create_user(
+            phone_number="+998900000555",
+            password="StrongPassword123",
+            full_name="Xodim akkaunti",
+            employee=self.employee,
+            last_login=timezone.now(),
+        )
+        document = self.create_document()
+        response = self.client.get(f"{DOCUMENTS_URL}{document.id}/")
+        self.assertIsNotNone(response.data["employee_details"]["last_login"])
+
+    def test_retrieve_document_employee_without_recruitment_success(self):
+        employee = Employee.objects.create(
+            organization=self.org1, branch=self.branch1, full_name="Yangi xodim"
+        )
+        document = self.create_document(employee=employee)
+        response = self.client.get(f"{DOCUMENTS_URL}{document.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        details = response.data["employee_details"]
+        self.assertIsNone(details["position_info"])
+        self.assertIsNone(details["salary_type"])
+        self.assertIsNone(details["hire_date"])
+        self.assertEqual(details["card_number"], "")
+
+    def test_list_documents_has_no_employee_details_success(self):
+        self.create_document()
+        response = self.client.get(DOCUMENTS_URL)
+        self.assertNotIn("employee_details", response.data["results"][0])
+
+    def test_retrieve_document_unauthenticated(self):
+        document = self.create_document()
+        self.client.force_authenticate(user=None)
+        response = self.client.get(f"{DOCUMENTS_URL}{document.id}/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_count_documents_by_status_success(self):
         self.create_document()
