@@ -146,6 +146,13 @@ class CalculatingSalaryCrudTestCase(SalaryBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
 
+    def test_list_salaries_includes_organization_success(self):
+        self.salary()
+        response = self.client.get(SALARIES_URL)
+        organization = response.data["results"][0]["organization_info"]
+        self.assertEqual(organization["id"], str(self.branch1.organization_id))
+        self.assertEqual(organization["name"], self.branch1.organization.name)
+
     def test_list_salaries_scoped_to_own_branches(self):
         other = self.hire("Boshqa", branch=self.branch2, org=self.org2)
         self.salary(branch=self.branch2, employee=other)

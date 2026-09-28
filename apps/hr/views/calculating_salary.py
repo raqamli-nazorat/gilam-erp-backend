@@ -27,7 +27,7 @@ class CalculatingSalaryViewSet(BaseManageViewSet):
     """Xodimlar oylik hisobi (oylik hisoblash hujjati) uchun ViewSet."""
 
     queryset = CalculatingSalary.objects.active().select_related(
-        "branch", "employee", "currency"
+        "branch__organization", "employee", "currency"
     )
     serializer_class = CalculatingSalarySerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
