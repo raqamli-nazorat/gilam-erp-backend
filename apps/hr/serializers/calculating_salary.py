@@ -35,6 +35,7 @@ class CalculatingSalarySerializer(BaseModelSerializer):
         }
         related_fields = {
             "branch": {"fields": ["id", "name"]},
+            "organization": {"source": "branch.organization", "fields": ["id", "name"]},
             "employee": {"fields": ["id", "full_name"]},
             "currency": {"fields": ["id", "name", "short_name"]},
         }
