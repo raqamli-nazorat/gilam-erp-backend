@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from apps.base.serializers import BaseModelSerializer
 from apps.organization.models import Branch
+from apps.utils.validators import CANCEL_ATTACHMENT_VALIDATORS
 
 from ..models import CalculatingSalary
 from ..services.salary import ensure_draft
@@ -22,10 +23,12 @@ class CalculatingSalarySerializer(BaseModelSerializer):
             "currency",
             "currency_amount",
             "status",
+            "cancel_reason",
+            "cancel_attachment",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["status"]
+        read_only_fields = ["status", "cancel_reason", "cancel_attachment"]
         extra_kwargs = {
             "amount": {"min_value": 0},
             "currency_amount": {"min_value": 0},
@@ -50,6 +53,24 @@ class CalculatingSalarySerializer(BaseModelSerializer):
         if not currency.is_active:
             raise serializers.ValidationError({"currency": "Valyuta faol emas."})
         return attrs
+
+
+class CalculatingSalaryCancelSerializer(serializers.Serializer):
+    """Bekor qilish so'rovi: sabab va asos hujjat (PDF/Excel) ixtiyoriy."""
+
+    reason = serializers.CharField(required=False, allow_blank=True, default="")
+    attachment = serializers.FileField(
+        required=False, validators=CANCEL_ATTACHMENT_VALIDATORS
+    )
+
+
+class CalculatingSalaryCountSerializer(serializers.Serializer):
+    """Oylik hisoblar sonining status bo'yicha javobi (faqat hujjat uchun)."""
+
+    all = serializers.IntegerField(help_text="Barcha oylik hisoblar soni.")
+    draft = serializers.IntegerField(help_text="Qoralama.")
+    approved = serializers.IntegerField(help_text="Tasdiqlangan.")
+    cancelled = serializers.IntegerField(help_text="Bekor qilingan.")
 
 
 class CalculatingSalaryCalculateSerializer(serializers.Serializer):

@@ -1,6 +1,7 @@
 from django.db import models
 
 from apps.base.models import BaseModel
+from apps.utils.validators import CANCEL_ATTACHMENT_VALIDATORS
 
 from .accrual_retention import AccrualRetention
 
@@ -39,6 +40,17 @@ class AccrualRetentionDocument(BaseModel):
         default=Status.DRAFT,
         db_index=True,
         verbose_name="Holati",
+    )
+    cancel_reason = models.TextField(
+        blank=True, default="", verbose_name="Bekor qilish sababi"
+    )
+    cancel_attachment = models.FileField(
+        upload_to="finance/accrual_documents/cancel/%Y/%m/",
+        null=True,
+        blank=True,
+        validators=CANCEL_ATTACHMENT_VALIDATORS,
+        verbose_name="Bekor qilish hujjati",
+        help_text="Bekor qilish asosi (PDF yoki Excel, 10 MB gacha)",
     )
 
     class Meta:

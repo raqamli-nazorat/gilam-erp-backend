@@ -49,11 +49,16 @@ def approve_document(document):
 
 
 @transaction.atomic
-def cancel_document(document):
-    """Qoralama yoki tasdiqlangan hujjatni bekor qiladi."""
+def cancel_document(document, reason="", attachment=None):
+    """Qoralama yoki tasdiqlangan hujjatni bekor qiladi (sabab va asos hujjat ixtiyoriy)."""
     document = AccrualRetentionDocument.objects.select_for_update().get(pk=document.pk)
     if document.status == AccrualRetentionDocument.Status.CANCELLED:
         raise ValidationError("Hujjat allaqachon bekor qilingan.")
     document.status = AccrualRetentionDocument.Status.CANCELLED
-    document.save(update_fields=["status", "updated_at"])
+    document.cancel_reason = reason
+    if attachment:
+        document.cancel_attachment = attachment
+    document.save(
+        update_fields=["status", "cancel_reason", "cancel_attachment", "updated_at"]
+    )
     return document

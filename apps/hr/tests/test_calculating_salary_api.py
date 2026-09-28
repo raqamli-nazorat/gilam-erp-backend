@@ -1,7 +1,11 @@
 import datetime
+import shutil
+import tempfile
 from decimal import Decimal
 
 from django.contrib.auth.models import Permission
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
@@ -23,6 +27,7 @@ from apps.hr.services.salary import approve_salary, calculate_salaries, cancel_s
 from .test_hr_api import HRBaseAPITestCase
 
 SALARIES_URL = "/api/v1/hr/calculating-salaries/"
+TEMP_MEDIA = tempfile.mkdtemp()
 TZ = datetime.timezone(datetime.timedelta(hours=5))
 
 
@@ -257,6 +262,35 @@ class CalculatingSalaryStatusTestCase(SalaryBaseTestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_count_salaries_by_status_success(self):
+        self.salary()
+        approve_salary(self.salary(for_month=2))
+        cancel_salary(self.salary(for_month=3))
+        response = self.client.get(f"{SALARIES_URL}count/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data, {"all": 3, "draft": 1, "approved": 1, "cancelled": 1}
+        )
+
+    def test_count_salaries_scoped_to_own_branches(self):
+        self.salary()
+        other = self.hire("Xodim 2", branch=self.branch2, org=self.org2)
+        self.salary(branch=self.branch2, employee=other)
+        response = self.client.get(f"{SALARIES_URL}count/")
+        self.assertEqual(response.data["all"], 1)
+
+    def test_count_salaries_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get(f"{SALARIES_URL}count/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_count_salaries_forbidden_without_permission(self):
+        self.role_org1.permissions.remove(
+            Permission.objects.get(codename="view_calculatingsalary")
+        )
+        response = self.client.get(f"{SALARIES_URL}count/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_cancel_approved_salary_success(self):
         salary = self.salary()
         approve_salary(salary)
@@ -279,6 +313,89 @@ class CalculatingSalaryStatusTestCase(SalaryBaseTestCase):
         cancel_salary(salary)
         with self.assertRaises(ValidationError):
             approve_salary(salary)
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA)
+class CalculatingSalaryCancelTestCase(SalaryBaseTestCase):
+    """`cancel` endpointi: sabab va PDF/Excel asos hujjat (ixtiyoriy)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.addClassCleanup(shutil.rmtree, TEMP_MEDIA, ignore_errors=True)
+
+    def cancel_url(self, obj):
+        return f"{SALARIES_URL}{obj.id}/cancel/"
+
+    def test_cancel_with_reason_and_pdf_success(self):
+        obj = self.salary()
+        pdf = SimpleUploadedFile("asos.pdf", b"%PDF-1.4", "application/pdf")
+        response = self.client.post(
+            self.cancel_url(obj),
+            {"reason": "Ma'lumotlar noto'g'ri kiritilgan", "attachment": pdf},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "cancelled")
+        self.assertEqual(
+            response.data["cancel_reason"], "Ma'lumotlar noto'g'ri kiritilgan"
+        )
+        self.assertIn("asos", response.data["cancel_attachment"])
+        obj.refresh_from_db()
+        self.assertTrue(obj.cancel_attachment.name.endswith(".pdf"))
+
+    def test_cancel_with_excel_success(self):
+        obj = self.salary()
+        approve_salary(obj)
+        xlsx = SimpleUploadedFile(
+            "asos.xlsx", b"PK\x03\x04", "application/vnd.ms-excel"
+        )
+        response = self.client.post(
+            self.cancel_url(obj), {"attachment": xlsx}, format="multipart"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["cancel_reason"], "")
+
+    def test_cancel_with_reason_json_success(self):
+        obj = self.salary()
+        response = self.client.post(
+            self.cancel_url(obj), {"reason": "Xato"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["cancel_reason"], "Xato")
+        self.assertIsNone(response.data["cancel_attachment"])
+
+    def test_cancel_with_wrong_file_type_invalid_data(self):
+        obj = self.salary()
+        exe = SimpleUploadedFile("virus.exe", b"MZ", "application/octet-stream")
+        response = self.client.post(
+            self.cancel_url(obj), {"attachment": exe}, format="multipart"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        obj.refresh_from_db()
+        self.assertEqual(obj.status, "draft")
+
+    def test_cancel_with_too_large_file_invalid_data(self):
+        obj = self.salary()
+        big = SimpleUploadedFile(
+            "katta.pdf", b"0" * (10 * 1024 * 1024 + 1), "application/pdf"
+        )
+        response = self.client.post(
+            self.cancel_url(obj), {"attachment": big}, format="multipart"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cancel_with_file_unauthenticated(self):
+        obj = self.salary()
+        self.client.force_authenticate(user=None)
+        response = self.client.post(self.cancel_url(obj), {"reason": "x"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_cancel_with_file_forbidden_without_permission(self):
+        obj = self.salary()
+        self.client.force_authenticate(self.user_org2)
+        response = self.client.post(self.cancel_url(obj), {"reason": "x"})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class CalculateSalaryTestCase(SalaryBaseTestCase):
