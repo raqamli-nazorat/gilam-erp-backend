@@ -1,7 +1,7 @@
 import re
 
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import FileExtensionValidator, RegexValidator
 from django.utils.deconstruct import deconstructible
 
 phone_validator = RegexValidator(
@@ -52,3 +52,13 @@ class FileSizeValidator:
         return (
             isinstance(other, self.__class__) and self.max_size_mb == other.max_size_mb
         )
+
+
+# Bekor qilish asos hujjati (PDF yoki Excel, 10 MB gacha)
+CANCEL_ATTACHMENT_VALIDATORS = [
+    FileExtensionValidator(
+        ["pdf", "xls", "xlsx"],
+        message="Faqat PDF yoki Excel (XLS, XLSX) fayl yuklash mumkin.",
+    ),
+    FileSizeValidator(max_size_mb=10),
+]

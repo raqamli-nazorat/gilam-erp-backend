@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
@@ -10,6 +11,8 @@ from ..filters import CalculatingSalaryFilter
 from ..models import CalculatingSalary
 from ..serializers import (
     CalculatingSalaryCalculateSerializer,
+    CalculatingSalaryCancelSerializer,
+    CalculatingSalaryCountSerializer,
     CalculatingSalarySerializer,
 )
 from ..services.salary import (
@@ -32,6 +35,7 @@ class CalculatingSalaryViewSet(BaseManageViewSet):
     search_fields = ["employee__full_name", "employee__phone_number", "branch__name"]
     ordering_fields = ["for_month", "amount", "created_at", "updated_at"]
     action_permissions = {
+        "count": ["hr.view_calculatingsalary"],
         "approve": ["hr.change_calculatingsalary"],
         "cancel": ["hr.change_calculatingsalary"],
     }
@@ -46,6 +50,23 @@ class CalculatingSalaryViewSet(BaseManageViewSet):
         """Faqat qoralama oylikni o'chirishga ruxsat beradi."""
         ensure_draft(instance)
         super().perform_destroy(instance)
+
+    @extend_schema(
+        summary="Statuslar bo'yicha oylik hisoblar soni",
+        request=None,
+        responses={200: CalculatingSalaryCountSerializer},
+    )
+    @action(detail=False, methods=["get"])
+    def count(self, request, *args, **kwargs):
+        """Barchasi, qoralama, tasdiqlangan va bekor qilingan oyliklar sonini qaytaradi."""
+        Status = CalculatingSalary.Status
+        counts = self.get_queryset().aggregate(
+            all=Count("pk"),
+            draft=Count("pk", filter=Q(status=Status.DRAFT)),
+            approved=Count("pk", filter=Q(status=Status.APPROVED)),
+            cancelled=Count("pk", filter=Q(status=Status.CANCELLED)),
+        )
+        return Response(counts)
 
     @action(detail=False, methods=["post"])
     def calculate(self, request, *args, **kwargs):
@@ -75,11 +96,15 @@ class CalculatingSalaryViewSet(BaseManageViewSet):
             ).data
         )
 
-    @extend_schema(request=None, responses=CalculatingSalarySerializer)
+    @extend_schema(
+        request=CalculatingSalaryCancelSerializer, responses=CalculatingSalarySerializer
+    )
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
-        """Oylikni bekor qiladi."""
-        salary = cancel_salary(self.get_object())
+        """Oylikni bekor qiladi (sabab va PDF/Excel asos hujjat ixtiyoriy)."""
+        serializer = CalculatingSalaryCancelSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        salary = cancel_salary(self.get_object(), **serializer.validated_data)
         return Response(
             CalculatingSalarySerializer(
                 salary, context=self.get_serializer_context()

@@ -4,6 +4,7 @@ from rest_framework import serializers
 from apps.base.serializers import BaseModelSerializer
 from apps.hr.models import Employee
 from apps.organization.models import Branch
+from apps.utils.validators import CANCEL_ATTACHMENT_VALIDATORS
 
 from ..models import AccrualRetention, AccrualRetentionDocument
 from ..services.accrual_document import ensure_draft, ensure_employees_employed
@@ -46,10 +47,12 @@ class AccrualRetentionDocumentSerializer(BaseModelSerializer):
             "accrual_retention",
             "date",
             "status",
+            "cancel_reason",
+            "cancel_attachment",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["status"]
+        read_only_fields = ["status", "cancel_reason", "cancel_attachment"]
         related_fields = {
             "branch": {"fields": ["id", "name"]},
             "employee": {"fields": ["id", "full_name"]},
@@ -71,6 +74,24 @@ class AccrualRetentionDocumentSerializer(BaseModelSerializer):
             self.context["request"].user, branch, [employee], accrual
         )
         return attrs
+
+
+class AccrualRetentionDocumentCancelSerializer(serializers.Serializer):
+    """Bekor qilish so'rovi: sabab va asos hujjat (PDF/Excel) ixtiyoriy."""
+
+    reason = serializers.CharField(required=False, allow_blank=True, default="")
+    attachment = serializers.FileField(
+        required=False, validators=CANCEL_ATTACHMENT_VALIDATORS
+    )
+
+
+class AccrualRetentionDocumentCountSerializer(serializers.Serializer):
+    """Hujjatlar sonining status bo'yicha javobi (faqat hujjat uchun)."""
+
+    all = serializers.IntegerField(help_text="Barcha hujjatlar soni.")
+    draft = serializers.IntegerField(help_text="Qoralama.")
+    approved = serializers.IntegerField(help_text="Tasdiqlangan.")
+    cancelled = serializers.IntegerField(help_text="Bekor qilingan.")
 
 
 class AccrualRetentionDocumentBulkCreateSerializer(serializers.Serializer):

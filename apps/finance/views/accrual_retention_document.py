@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -11,6 +12,8 @@ from ..filters import AccrualRetentionDocumentFilter
 from ..models import AccrualRetentionDocument
 from ..serializers import (
     AccrualRetentionDocumentBulkCreateSerializer,
+    AccrualRetentionDocumentCancelSerializer,
+    AccrualRetentionDocumentCountSerializer,
     AccrualRetentionDocumentSerializer,
 )
 from ..services.accrual_document import (
@@ -36,6 +39,7 @@ class AccrualRetentionDocumentViewSet(BaseManageViewSet):
     ]
     ordering_fields = ["date", "created_at", "updated_at"]
     action_permissions = {
+        "count": ["finance.view_accrualretentiondocument"],
         "approve": ["finance.change_accrualretentiondocument"],
         "cancel": ["finance.change_accrualretentiondocument"],
     }
@@ -50,6 +54,23 @@ class AccrualRetentionDocumentViewSet(BaseManageViewSet):
         """Faqat qoralama hujjatni o'chirishga ruxsat beradi."""
         ensure_draft(instance)
         super().perform_destroy(instance)
+
+    @extend_schema(
+        summary="Statuslar bo'yicha hujjatlar soni",
+        request=None,
+        responses={200: AccrualRetentionDocumentCountSerializer},
+    )
+    @action(detail=False, methods=["get"])
+    def count(self, request, *args, **kwargs):
+        """Barchasi, qoralama, tasdiqlangan va bekor qilingan hujjatlar sonini qaytaradi."""
+        Status = AccrualRetentionDocument.Status
+        counts = self.get_queryset().aggregate(
+            all=Count("pk"),
+            draft=Count("pk", filter=Q(status=Status.DRAFT)),
+            approved=Count("pk", filter=Q(status=Status.APPROVED)),
+            cancelled=Count("pk", filter=Q(status=Status.CANCELLED)),
+        )
+        return Response(counts)
 
     @action(detail=False, methods=["post"], url_path="bulk-create")
     def bulk_create(self, request, *args, **kwargs):
@@ -73,11 +94,16 @@ class AccrualRetentionDocumentViewSet(BaseManageViewSet):
             ).data
         )
 
-    @extend_schema(request=None, responses=AccrualRetentionDocumentSerializer)
+    @extend_schema(
+        request=AccrualRetentionDocumentCancelSerializer,
+        responses=AccrualRetentionDocumentSerializer,
+    )
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
-        """Hujjatni bekor qiladi."""
-        document = cancel_document(self.get_object())
+        """Hujjatni bekor qiladi (sabab va PDF/Excel asos hujjat ixtiyoriy)."""
+        serializer = AccrualRetentionDocumentCancelSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        document = cancel_document(self.get_object(), **serializer.validated_data)
         return Response(
             AccrualRetentionDocumentSerializer(
                 document, context=self.get_serializer_context()
