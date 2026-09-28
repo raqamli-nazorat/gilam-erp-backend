@@ -64,6 +64,21 @@ def annotate_latest_position(queryset, employee_field="pk"):
     )
 
 
+def get_latest_recruitment(employee):
+    """Xodimning oxirgi tasdiqlangan ishga olish yozuvini (lavozimi bilan) qaytaradi."""
+    return (
+        RecruitmentDismissal.objects.filter(
+            employee=employee,
+            type=RecruitmentDismissal.Type.RECRUITMENT,
+            status=RecruitmentDismissal.Status.APPROVED,
+            is_active=True,
+        )
+        .select_related("position")
+        .order_by("-rec_dism_date", "-created_at")
+        .first()
+    )
+
+
 def build_employment_status(
     is_employed, latest_status_type, latest_status_date, latest_status_reason
 ):
