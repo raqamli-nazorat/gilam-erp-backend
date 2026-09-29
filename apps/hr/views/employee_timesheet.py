@@ -1,6 +1,7 @@
 from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
@@ -9,7 +10,12 @@ from apps.base.views import BaseManageViewSet
 
 from ..filters import EmployeeTimesheetFilter, EmployeeTimesheetItemFilter
 from ..models import EmployeeTimesheet, EmployeeTimesheetItem
-from ..serializers import EmployeeTimesheetItemSerializer, EmployeeTimesheetSerializer
+from ..serializers import (
+    EmployeeTimesheetCountSerializer,
+    EmployeeTimesheetItemBulkCreateSerializer,
+    EmployeeTimesheetItemSerializer,
+    EmployeeTimesheetSerializer,
+)
 from ..services.timesheet import approve_timesheet, cancel_timesheet, ensure_draft
 
 
@@ -27,6 +33,7 @@ class EmployeeTimesheetViewSet(BaseManageViewSet):
     search_fields = ["branch__name"]
     ordering_fields = ["for_month", "created_at", "updated_at"]
     action_permissions = {
+        "count": ["hr.view_employeetimesheet"],
         "approve": ["hr.change_employeetimesheet"],
         "cancel": ["hr.change_employeetimesheet"],
     }
@@ -35,6 +42,25 @@ class EmployeeTimesheetViewSet(BaseManageViewSet):
         """Faqat qoralama tabelni o'chirishga ruxsat beradi."""
         ensure_draft(instance)
         super().perform_destroy(instance)
+
+    @extend_schema(
+        summary="Statuslar bo'yicha tabellar soni",
+        request=None,
+        responses={200: EmployeeTimesheetCountSerializer},
+    )
+    @action(detail=False, methods=["get"])
+    def count(self, request, *args, **kwargs):
+        """Barchasi, qoralama, tasdiqlangan va bekor qilingan tabellar sonini qaytaradi."""
+        Status = EmployeeTimesheet.Status
+        queryset = EmployeeTimesheet.objects.active()
+        queryset = queryset.filter(pk__in=self.get_queryset().values("pk"))
+        counts = queryset.aggregate(
+            all=Count("pk"),
+            draft=Count("pk", filter=Q(status=Status.DRAFT)),
+            approved=Count("pk", filter=Q(status=Status.APPROVED)),
+            cancelled=Count("pk", filter=Q(status=Status.CANCELLED)),
+        )
+        return Response(counts)
 
     @extend_schema(request=None, responses=EmployeeTimesheetSerializer)
     @action(detail=True, methods=["post"])
@@ -72,6 +98,28 @@ class EmployeeTimesheetItemViewSet(BaseManageViewSet):
         return queryset.filter(
             employee_timesheet__branch__in=user.get_accessible_branches()
         )
+
+    def get_serializer_class(self):
+        """`bulk_create` uchun alohida serializer qaytaradi."""
+        if self.action == "bulk_create":
+            return EmployeeTimesheetItemBulkCreateSerializer
+        return super().get_serializer_class()
+
+    @extend_schema(
+        summary="Tabelga ko'plab qator qo'shish",
+        request=EmployeeTimesheetItemBulkCreateSerializer,
+        responses={201: EmployeeTimesheetItemSerializer(many=True)},
+    )
+    @action(detail=False, methods=["post"], url_path="bulk-create")
+    def bulk_create(self, request, *args, **kwargs):
+        """Bir tabelga bir nechta xodim/kun qatorini bir so'rovda qo'shadi (hammasi yoki hech narsa)."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        items = serializer.save()
+        output = EmployeeTimesheetItemSerializer(
+            items, many=True, context=self.get_serializer_context()
+        )
+        return Response(output.data, status=status.HTTP_201_CREATED)
 
     def perform_destroy(self, instance):
         """Faqat qoralama tabeldagi qatorni o'chirishga ruxsat beradi."""

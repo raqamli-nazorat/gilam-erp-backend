@@ -219,11 +219,16 @@ Table CalculatingSalary {
 Table EmployeeTimesheet {
   id                integer [primary key]      // uuid 16
   branch            integer [ref: > Branch.id, not null]
+  year              integer [default: current_year]   // 2000-2100
   for_mounth        choice ("Yanvar", "Fe")
   status            choice ("Qoralama", "Tasdiqlangan", "Bekor qilingan")
   is_active         boolean [default: true]
   created_at        timestamp [default: `now()`]
   updated_at        timestamp [default: `now()`]
+
+  indexes {
+    (branch, year, for_mounth) [unique, note: "faqat faol va bekor qilinmagan tabellar"]
+  }
 }
 
 Table EmployeeTimesheetItem {
