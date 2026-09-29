@@ -77,6 +77,7 @@ class SalaryBaseTestCase(HRBaseAPITestCase):
         """Yanvar oyi uchun tasdiqlangan tabel."""
         return EmployeeTimesheet.objects.create(
             branch=branch or self.branch1,
+            year=2026,
             for_month=1,
             status=EmployeeTimesheet.Status.APPROVED,
         )
@@ -509,14 +510,14 @@ class CalculateSalaryTestCase(SalaryBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_calculate_salary_skips_non_fixed_salary_type(self):
-        self.prepare()
+        timesheet = self.prepare()
         percent_employee = self.hire(
             "Foizli",
             salary_type=RecruitmentDismissal.SalaryType.SALES_PERCENT,
             fix_summa=None,
             fix_percent=10,
         )
-        self.add_hours(self.approved_timesheet(), percent_employee, {10: (8, 8)})
+        self.add_hours(timesheet, percent_employee, {10: (8, 8)})
         response = self.calculate()
         skipped = {item["employee"]: item for item in response.data["skipped"]}
         self.assertIn(percent_employee.pk, skipped)

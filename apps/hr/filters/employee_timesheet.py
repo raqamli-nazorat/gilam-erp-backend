@@ -5,6 +5,7 @@ from ..models import EmployeeTimesheet, EmployeeTimesheetItem
 
 class EmployeeTimesheetFilter(django_filters.FilterSet):
     branch = django_filters.UUIDFilter(field_name="branch_id")
+    year = django_filters.NumberFilter(field_name="year")
     for_month = django_filters.ChoiceFilter(choices=EmployeeTimesheet.Month.choices)
     status = django_filters.ChoiceFilter(choices=EmployeeTimesheet.Status.choices)
     start_date = django_filters.DateFilter(
@@ -16,7 +17,7 @@ class EmployeeTimesheetFilter(django_filters.FilterSet):
 
     class Meta:
         model = EmployeeTimesheet
-        fields = ["branch", "for_month", "status", "start_date", "end_date"]
+        fields = ["branch", "year", "for_month", "status", "start_date", "end_date"]
 
 
 class EmployeeTimesheetItemFilter(django_filters.FilterSet):

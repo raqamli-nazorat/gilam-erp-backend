@@ -183,12 +183,15 @@ def calculate_salaries(branch, month, year):
     if (
         not EmployeeTimesheet.objects.active()
         .filter(
-            branch=branch, for_month=month, status=EmployeeTimesheet.Status.APPROVED
+            branch=branch,
+            year=year,
+            for_month=month,
+            status=EmployeeTimesheet.Status.APPROVED,
         )
         .exists()
     ):
         raise ValidationError(
-            {"for_month": "Bu filial va oy uchun tasdiqlangan tabel yo'q."}
+            {"for_month": "Bu filial, yil va oy uchun tasdiqlangan tabel yo'q."}
         )
 
     records = _employed_records(branch)

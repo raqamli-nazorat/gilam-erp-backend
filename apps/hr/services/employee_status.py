@@ -140,6 +140,37 @@ def get_active_recruitment_records(employee):
     ]
 
 
+def employed_on(records, day):
+    """Yozuvlar bo'yicha xodim berilgan sanada ishlab turganini aniqlaydi.
+
+    `records` — (`rec_dism_date`, `type`) juftliklari, yangidan eskiga tartiblangan.
+    "Bo'shatish" o'z sanasidan keyingi kundan kuchga kiradi (bo'shatilgan kunda xodim
+    ishlagan hisoblanadi); "ishga olish" o'z sanasidan boshlab kuchga kiradi.
+    """
+    for record_date, record_type in records:
+        if record_type == RecruitmentDismissal.Type.DISMISSAL:
+            if record_date < day:
+                return False
+        elif record_date <= day:
+            return True
+    return False
+
+
+def was_employed_on(employee, branch, day):
+    """Xodim filialda berilgan sanada ishlab turganini tekshiradi."""
+    records = (
+        RecruitmentDismissal.objects.filter(
+            employee=employee,
+            branch=branch,
+            status=RecruitmentDismissal.Status.APPROVED,
+            is_active=True,
+        )
+        .order_by("-rec_dism_date", "-created_at")
+        .values_list("rec_dism_date", "type")
+    )
+    return employed_on(records, day)
+
+
 def get_employee_employment_history(employee):
     """Xodimning har bir filial bo'yicha ish tarixini (joriy holati bilan) qaytaradi.
 
