@@ -1,4 +1,5 @@
 import django_filters
+from django.db.models import Q
 
 from apps.base.filters import UUIDInFilter
 
@@ -17,10 +18,18 @@ class UserFilter(django_filters.FilterSet):
     is_blocked = django_filters.BooleanFilter(method="filter_is_blocked")
 
     def filter_is_blocked(self, queryset, name, value):
-        """`get_queryset` dagi `latest_block_type` annotatsiyasi bo'yicha filtrlaydi."""
+        """`get_queryset` dagi `latest_block_type` annotatsiyasi bo'yicha filtrlaydi.
+
+        `latest_block_type` hech qachon bloklanmagan userlar uchun NULL bo'ladi;
+        oddiy `exclude()` SQL'da NULL qatorlarni ham chiqarib tashlaydi (uch qiymatli
+        mantiq), shuning uchun False holatda NULL'ni alohida qo'shib olamiz.
+        """
         if value:
             return queryset.filter(latest_block_type=UserBlockLog.Type.BLOCK)
-        return queryset.exclude(latest_block_type=UserBlockLog.Type.BLOCK)
+        return queryset.filter(
+            Q(latest_block_type__isnull=True)
+            | ~Q(latest_block_type=UserBlockLog.Type.BLOCK)
+        )
 
     class Meta:
         model = User

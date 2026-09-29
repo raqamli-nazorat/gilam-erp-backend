@@ -6,6 +6,7 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 
 from apps.base.views import BaseManageViewSet
+from apps.hr.models import RecruitmentDismissal
 
 from ..filters import UserFilter
 from ..models import User, UserBlockLog
@@ -31,6 +32,9 @@ class UserViewSet(BaseManageViewSet):
         latest_block = UserBlockLog.objects.filter(user=OuterRef("pk")).order_by(
             "-created_at"
         )
+        latest_rd = RecruitmentDismissal.objects.filter(
+            employee=OuterRef("employee_id"), is_active=True
+        ).order_by("-rec_dism_date", "-created_at")
         qs = (
             User.objects.active()
             .select_related("role", "employee__organization", "employee__branch")
@@ -41,6 +45,7 @@ class UserViewSet(BaseManageViewSet):
                 latest_block_actor_name=Subquery(
                     latest_block.values("actor__full_name")[:1]
                 ),
+                recruitment_dismissal_status=Subquery(latest_rd.values("status")[:1]),
             )
         )
         if user.is_system_admin:
