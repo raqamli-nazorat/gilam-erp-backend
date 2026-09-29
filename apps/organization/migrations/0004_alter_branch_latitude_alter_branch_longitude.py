@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organization", "0003_branch_latitude_branch_longitude_branch_radius"),
     ]
