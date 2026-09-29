@@ -15,6 +15,7 @@ class UserSerializer(BaseModelSerializer):
     blocked_reason = serializers.SerializerMethodField(read_only=True)
     blocked_at = serializers.SerializerMethodField(read_only=True)
     blocked_by = serializers.SerializerMethodField(read_only=True)
+    recruitment_dismissal_status = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
@@ -32,6 +33,7 @@ class UserSerializer(BaseModelSerializer):
             "blocked_reason",
             "blocked_at",
             "blocked_by",
+            "recruitment_dismissal_status",
             "created_at",
             "updated_at",
         ]
@@ -74,6 +76,10 @@ class UserSerializer(BaseModelSerializer):
         if self.get_is_blocked(obj):
             return getattr(obj, "latest_block_actor_name", None)
         return None
+
+    def get_recruitment_dismissal_status(self, obj):
+        """Xodimning oxirgi ishga olish/bo'shatish hujjati holati (draft/approved/cancelled)."""
+        return getattr(obj, "recruitment_dismissal_status", None)
 
     def validate_role(self, role):
         request = self.context.get("request")
