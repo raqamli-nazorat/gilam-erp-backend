@@ -1,19 +1,33 @@
 import datetime
 
 from django.contrib.auth.models import Permission
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from apps.hr.models import Employee, EmployeeTimesheet, EmployeeTimesheetItem
+from apps.finance.models import Currency
+from apps.hr.models import (
+    CalculatingSalary,
+    Employee,
+    EmployeeTimesheet,
+    EmployeeTimesheetItem,
+    RecruitmentDismissal,
+)
+from apps.hr.services.employee_status import was_employed_on
 from apps.hr.services.timesheet import approve_timesheet, cancel_timesheet
 
 from .test_hr_api import HRBaseAPITestCase
 
 TIMESHEETS_URL = "/api/v1/hr/timesheets/"
 ITEMS_URL = "/api/v1/hr/timesheet-items/"
-JAN_10 = datetime.datetime(
-    2026, 1, 10, tzinfo=datetime.timezone(datetime.timedelta(hours=5))
-)
+BULK_URL = f"{ITEMS_URL}bulk-create/"
+TZ = datetime.timezone(datetime.timedelta(hours=5))
+JAN_10 = datetime.datetime(2026, 1, 10, tzinfo=TZ)
+
+
+def jan(day, hour=0):
+    """2026-yil yanvaridagi kun uchun aware datetime."""
+    return datetime.datetime(2026, 1, day, hour, tzinfo=TZ)
 
 
 class TimesheetBaseTestCase(HRBaseAPITestCase):
@@ -28,13 +42,33 @@ class TimesheetBaseTestCase(HRBaseAPITestCase):
             ],
         )
         self.role_org1.permissions.add(*perms)
-        self.employee = Employee.objects.create(
-            organization=self.org1, branch=self.branch1, full_name="Xodim 1"
-        )
+        self.employee = self.hire("Xodim 1")
         self.timesheet = EmployeeTimesheet.objects.create(
-            branch=self.branch1, for_month=EmployeeTimesheet.Month.JANUARY
+            branch=self.branch1, year=2026, for_month=EmployeeTimesheet.Month.JANUARY
         )
         self.client.force_authenticate(self.user_org1)
+
+    def hire(self, full_name, branch=None, org=None, date=datetime.date(2025, 12, 1)):
+        """Belgilangan sanadan ishlab turgan xodim yaratadi."""
+        branch = branch or self.branch1
+        employee = Employee.objects.create(
+            organization=org or self.org1, branch=branch, full_name=full_name
+        )
+        self.record(employee, RecruitmentDismissal.Type.RECRUITMENT, date, branch)
+        return employee
+
+    def record(self, employee, record_type, date, branch=None):
+        """Ishga olish/bo'shatish yozuvini yaratadi."""
+        return RecruitmentDismissal.objects.create(
+            type=record_type,
+            branch=branch or self.branch1,
+            employee=employee,
+            position=self.position,
+            card_number="8600123456789012",
+            salary_type=RecruitmentDismissal.SalaryType.FIXED_AMOUNT,
+            fix_summa=5000000,
+            rec_dism_date=date,
+        )
 
     def item_data(self, **overrides):
         """Standart to'g'ri qator ma'lumotlari."""
@@ -51,6 +85,38 @@ class TimesheetBaseTestCase(HRBaseAPITestCase):
         data.update(overrides)
         return data
 
+    def create_item(self, timesheet=None, employee=None, date=JAN_10, **extra):
+        """Tabelga bitta qator qo'shadi (bazada, tekshiruvsiz)."""
+        return EmployeeTimesheetItem.objects.create(
+            employee_timesheet=timesheet or self.timesheet,
+            employee=employee or self.employee,
+            date=date,
+            **extra,
+        )
+
+    def approve_ready(self, timesheet=None):
+        """Reja soatli qator qo'shib, tabelni tasdiqlaydi (bo'sh tabel tasdiqlanmaydi)."""
+        timesheet = timesheet or self.timesheet
+        self.create_item(timesheet=timesheet, date=jan(20), work_hour_in_plan=8)
+        return approve_timesheet(timesheet)
+
+    def bulk_data(self, rows=None, **overrides):
+        """`bulk-create` uchun standart so'rov: bitta xodim, ikki kun."""
+        if rows is None:
+            rows = [
+                {
+                    "employee": str(self.employee.id),
+                    "date": "2026-01-12T00:00:00+05:00",
+                },
+                {
+                    "employee": str(self.employee.id),
+                    "date": "2026-01-13T00:00:00+05:00",
+                },
+            ]
+        data = {"employee_timesheet": str(self.timesheet.id), "items": rows}
+        data.update(overrides)
+        return data
+
 
 class EmployeeTimesheetAPITestCase(TimesheetBaseTestCase):
     def test_list_timesheets_success(self):
@@ -58,9 +124,10 @@ class EmployeeTimesheetAPITestCase(TimesheetBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["items_count"], 0)
+        self.assertEqual(response.data["results"][0]["year"], 2026)
 
     def test_list_timesheets_scoped_to_own_branches(self):
-        EmployeeTimesheet.objects.create(branch=self.branch2, for_month=2)
+        EmployeeTimesheet.objects.create(branch=self.branch2, year=2026, for_month=2)
         response = self.client.get(TIMESHEETS_URL)
         self.assertEqual(response.data["count"], 1)
 
@@ -72,11 +139,20 @@ class EmployeeTimesheetAPITestCase(TimesheetBaseTestCase):
     def test_create_timesheet_success(self):
         response = self.client.post(
             TIMESHEETS_URL,
-            {"branch": str(self.branch1.id), "for_month": 2},
+            {"branch": str(self.branch1.id), "year": 2026, "for_month": 2},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["status"], "draft")
+
+    def test_create_timesheet_without_year_uses_current_year_success(self):
+        response = self.client.post(
+            TIMESHEETS_URL,
+            {"branch": str(self.branch1.id), "for_month": 2},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["year"], timezone.localdate().year)
 
     def test_create_timesheet_invalid_data(self):
         response = self.client.post(TIMESHEETS_URL, {"for_month": 13}, format="json")
@@ -85,29 +161,99 @@ class EmployeeTimesheetAPITestCase(TimesheetBaseTestCase):
     def test_create_timesheet_ignores_status_input(self):
         response = self.client.post(
             TIMESHEETS_URL,
-            {"branch": str(self.branch1.id), "for_month": 3, "status": "approved"},
+            {
+                "branch": str(self.branch1.id),
+                "year": 2026,
+                "for_month": 3,
+                "status": "approved",
+            },
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["status"], "draft")
 
+    def test_create_timesheet_duplicate_invalid_data(self):
+        response = self.client.post(
+            TIMESHEETS_URL,
+            {"branch": str(self.branch1.id), "year": 2026, "for_month": 1},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_timesheet_other_year_same_month_success(self):
+        response = self.client.post(
+            TIMESHEETS_URL,
+            {"branch": str(self.branch1.id), "year": 2027, "for_month": 1},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_timesheet_after_cancelled_success(self):
+        cancel_timesheet(self.timesheet)
+        response = self.client.post(
+            TIMESHEETS_URL,
+            {"branch": str(self.branch1.id), "year": 2026, "for_month": 1},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
     def test_create_timesheet_forbidden_without_permission(self):
         self.client.force_authenticate(self.user_org2)
         response = self.client.post(
             TIMESHEETS_URL,
-            {"branch": str(self.branch2.id), "for_month": 2},
+            {"branch": str(self.branch2.id), "year": 2026, "for_month": 2},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_update_empty_timesheet_month_success(self):
+        response = self.client.patch(
+            f"{TIMESHEETS_URL}{self.timesheet.id}/", {"for_month": 5}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_update_timesheet_month_with_items_invalid_data(self):
+        self.create_item()
+        response = self.client.patch(
+            f"{TIMESHEETS_URL}{self.timesheet.id}/", {"for_month": 5}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_timesheet_to_existing_period_invalid_data(self):
+        other = EmployeeTimesheet.objects.create(
+            branch=self.branch1, year=2026, for_month=2
+        )
+        response = self.client.patch(
+            f"{TIMESHEETS_URL}{other.id}/", {"for_month": 1}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_approve_timesheet_success(self):
+        self.create_item(work_hour_in_plan=8)
         response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/approve/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.timesheet.refresh_from_db()
         self.assertEqual(self.timesheet.status, EmployeeTimesheet.Status.APPROVED)
 
+    def test_approve_empty_timesheet_invalid_data(self):
+        response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/approve/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.timesheet.refresh_from_db()
+        self.assertEqual(self.timesheet.status, EmployeeTimesheet.Status.DRAFT)
+
+    def test_approve_timesheet_without_plan_hours_invalid_data(self):
+        self.create_item()
+        response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/approve/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_approve_timesheet_day_off_rows_do_not_block_success(self):
+        self.create_item(work_hour_in_plan=8)
+        self.create_item(date=jan(11))
+        response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/approve/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_approve_approved_timesheet_invalid_data(self):
-        approve_timesheet(self.timesheet)
+        self.approve_ready()
         response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/approve/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -116,6 +262,11 @@ class EmployeeTimesheetAPITestCase(TimesheetBaseTestCase):
         response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/approve/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_approve_timesheet_forbidden_without_permission(self):
+        self.client.force_authenticate(self.user_org2)
+        response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/approve/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_approve_timesheet_not_found(self):
         response = self.client.post(
             f"{TIMESHEETS_URL}00000000-0000-0000-0000-000000000000/approve/"
@@ -123,7 +274,7 @@ class EmployeeTimesheetAPITestCase(TimesheetBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_cancel_approved_timesheet_success(self):
-        approve_timesheet(self.timesheet)
+        self.approve_ready()
         response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/cancel/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.timesheet.refresh_from_db()
@@ -134,8 +285,13 @@ class EmployeeTimesheetAPITestCase(TimesheetBaseTestCase):
         response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/cancel/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_cancel_timesheet_forbidden_without_permission(self):
+        self.client.force_authenticate(self.user_org2)
+        response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/cancel/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_update_approved_timesheet_invalid_data(self):
-        approve_timesheet(self.timesheet)
+        self.approve_ready()
         response = self.client.patch(
             f"{TIMESHEETS_URL}{self.timesheet.id}/", {"for_month": 5}, format="json"
         )
@@ -146,22 +302,112 @@ class EmployeeTimesheetAPITestCase(TimesheetBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_delete_approved_timesheet_invalid_data(self):
-        approve_timesheet(self.timesheet)
+        self.approve_ready()
         response = self.client.delete(f"{TIMESHEETS_URL}{self.timesheet.id}/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_filter_timesheets_by_status_success(self):
         EmployeeTimesheet.objects.create(
-            branch=self.branch1, for_month=2, status=EmployeeTimesheet.Status.APPROVED
+            branch=self.branch1,
+            year=2026,
+            for_month=2,
+            status=EmployeeTimesheet.Status.APPROVED,
         )
         response = self.client.get(f"{TIMESHEETS_URL}?status=approved")
         self.assertEqual(response.data["count"], 1)
 
+    def test_filter_timesheets_by_year_success(self):
+        EmployeeTimesheet.objects.create(branch=self.branch1, year=2027, for_month=1)
+        response = self.client.get(f"{TIMESHEETS_URL}?year=2027")
+        self.assertEqual(response.data["count"], 1)
+
+    def test_count_timesheets_by_status_success(self):
+        EmployeeTimesheet.objects.create(
+            branch=self.branch1,
+            year=2026,
+            for_month=2,
+            status=EmployeeTimesheet.Status.APPROVED,
+        )
+        EmployeeTimesheet.objects.create(
+            branch=self.branch1,
+            year=2026,
+            for_month=3,
+            status=EmployeeTimesheet.Status.CANCELLED,
+        )
+        response = self.client.get(f"{TIMESHEETS_URL}count/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data, {"all": 3, "draft": 1, "approved": 1, "cancelled": 1}
+        )
+
+    def test_count_timesheets_scoped_to_own_branches(self):
+        EmployeeTimesheet.objects.create(branch=self.branch2, year=2026, for_month=2)
+        response = self.client.get(f"{TIMESHEETS_URL}count/")
+        self.assertEqual(response.data["all"], 1)
+
+    def test_count_timesheets_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get(f"{TIMESHEETS_URL}count/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_count_timesheets_forbidden_without_permission(self):
+        self.client.force_authenticate(self.user_org2)
+        response = self.client.get(f"{TIMESHEETS_URL}count/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class TimesheetCancelWithSalariesTestCase(TimesheetBaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.uzs = Currency.objects.create(name="So'm", short_name="UZS")
+        self.approve_ready()
+
+    def salary(self, status_value, month=1):
+        """Yanvar 2026 da yaratilgan (yil created_at orqali) oylik."""
+        salary = CalculatingSalary.objects.create(
+            branch=self.branch1,
+            employee=self.employee,
+            for_month=month,
+            amount=4000000,
+            currency=self.uzs,
+            currency_amount=4000000,
+            status=status_value,
+        )
+        CalculatingSalary.objects.filter(pk=salary.pk).update(created_at=jan(25))
+        return salary
+
+    def test_cancel_timesheet_with_approved_salary_invalid_data(self):
+        self.salary(CalculatingSalary.Status.APPROVED)
+        response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/cancel/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.timesheet.refresh_from_db()
+        self.assertEqual(self.timesheet.status, EmployeeTimesheet.Status.APPROVED)
+
+    def test_cancel_timesheet_with_draft_salary_success(self):
+        self.salary(CalculatingSalary.Status.DRAFT)
+        response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/cancel/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_cancel_timesheet_with_other_month_approved_salary_success(self):
+        self.salary(CalculatingSalary.Status.APPROVED, month=2)
+        response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/cancel/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_cancel_timesheet_after_salary_cancelled_success(self):
+        salary = self.salary(CalculatingSalary.Status.CANCELLED)
+        self.assertEqual(salary.status, CalculatingSalary.Status.CANCELLED)
+        response = self.client.post(f"{TIMESHEETS_URL}{self.timesheet.id}/cancel/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
 
 class TimesheetServiceTestCase(TimesheetBaseTestCase):
     def test_approve_draft_timesheet_success(self):
-        result = approve_timesheet(self.timesheet)
+        result = self.approve_ready()
         self.assertEqual(result.status, EmployeeTimesheet.Status.APPROVED)
+
+    def test_approve_empty_timesheet_raises(self):
+        with self.assertRaises(ValidationError):
+            approve_timesheet(self.timesheet)
 
     def test_approve_cancelled_timesheet_raises(self):
         cancel_timesheet(self.timesheet)
@@ -171,6 +417,31 @@ class TimesheetServiceTestCase(TimesheetBaseTestCase):
     def test_cancel_draft_timesheet_success(self):
         result = cancel_timesheet(self.timesheet)
         self.assertEqual(result.status, EmployeeTimesheet.Status.CANCELLED)
+
+    def test_was_employed_on_hired_employee_success(self):
+        self.assertTrue(
+            was_employed_on(self.employee, self.branch1, datetime.date(2026, 1, 10))
+        )
+
+    def test_was_employed_on_before_hire_date_false(self):
+        self.assertFalse(
+            was_employed_on(self.employee, self.branch1, datetime.date(2025, 11, 30))
+        )
+
+    def test_was_employed_on_after_dismissal_false(self):
+        self.record(
+            self.employee,
+            RecruitmentDismissal.Type.DISMISSAL,
+            datetime.date(2026, 1, 20),
+        )
+        day = datetime.date
+        self.assertTrue(was_employed_on(self.employee, self.branch1, day(2026, 1, 20)))
+        self.assertFalse(was_employed_on(self.employee, self.branch1, day(2026, 1, 21)))
+
+    def test_was_employed_on_other_branch_false(self):
+        self.assertFalse(
+            was_employed_on(self.employee, self.branch2, datetime.date(2026, 1, 10))
+        )
 
 
 class EmployeeTimesheetItemAPITestCase(TimesheetBaseTestCase):
@@ -200,10 +471,23 @@ class EmployeeTimesheetItemAPITestCase(TimesheetBaseTestCase):
         response = self.client.post(ITEMS_URL, self.item_data(), format="json")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_create_item_forbidden_without_permission(self):
+        self.client.force_authenticate(self.user_org2)
+        response = self.client.post(ITEMS_URL, self.item_data(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_create_item_wrong_month_invalid_data(self):
         response = self.client.post(
             ITEMS_URL,
             self.item_data(date="2026-02-10T00:00:00+05:00"),
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_item_wrong_year_invalid_data(self):
+        response = self.client.post(
+            ITEMS_URL,
+            self.item_data(date="2025-01-10T00:00:00+05:00"),
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -236,14 +520,71 @@ class EmployeeTimesheetItemAPITestCase(TimesheetBaseTestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_create_item_in_approved_timesheet_invalid_data(self):
-        approve_timesheet(self.timesheet)
+    def test_create_item_plan_hours_out_of_range_invalid_data(self):
+        response = self.client.post(
+            ITEMS_URL, self.item_data(work_hour_in_plan="25.00"), format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_item_negative_fact_hours_invalid_data(self):
+        response = self.client.post(
+            ITEMS_URL, self.item_data(work_hour_in_fact="-1.00"), format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_item_before_hire_date_invalid_data(self):
+        late = self.hire("Yangi xodim", date=datetime.date(2026, 1, 15))
+        response = self.client.post(
+            ITEMS_URL, self.item_data(employee=str(late.id)), format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_item_dismissed_employee_past_date_success(self):
+        self.record(
+            self.employee,
+            RecruitmentDismissal.Type.DISMISSAL,
+            datetime.date(2026, 1, 20),
+        )
+        response = self.client.post(ITEMS_URL, self.item_data(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_item_after_dismissal_invalid_data(self):
+        self.record(
+            self.employee,
+            RecruitmentDismissal.Type.DISMISSAL,
+            datetime.date(2026, 1, 5),
+        )
         response = self.client.post(ITEMS_URL, self.item_data(), format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_create_item_in_approved_timesheet_invalid_data(self):
+        self.approve_ready()
+        response = self.client.post(ITEMS_URL, self.item_data(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_item_success(self):
+        item = self.create_item()
+        response = self.client.patch(
+            f"{ITEMS_URL}{item.id}/", {"work_hour_in_plan": "6.00"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item.refresh_from_db()
+        self.assertEqual(str(item.work_hour_in_plan), "6.00")
+
+    def test_update_item_times_recalculates_fact_hours_success(self):
+        response = self.client.post(ITEMS_URL, self.item_data(), format="json")
+        response = self.client.patch(
+            f"{ITEMS_URL}{response.data['id']}/",
+            {"output_date": "2026-01-10T17:00:00+05:00"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item = EmployeeTimesheetItem.objects.get(pk=response.data["id"])
+        self.assertEqual(str(item.work_hour_in_fact), "7.00")
+
     def test_update_item_in_approved_timesheet_invalid_data(self):
         item = self.create_item()
-        approve_timesheet(self.timesheet)
+        self.approve_ready()
         response = self.client.patch(
             f"{ITEMS_URL}{item.id}/", {"work_hour_in_plan": "6.00"}, format="json"
         )
@@ -256,7 +597,7 @@ class EmployeeTimesheetItemAPITestCase(TimesheetBaseTestCase):
 
     def test_delete_item_in_approved_timesheet_invalid_data(self):
         item = self.create_item()
-        approve_timesheet(self.timesheet)
+        self.approve_ready()
         response = self.client.delete(f"{ITEMS_URL}{item.id}/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -266,7 +607,7 @@ class EmployeeTimesheetItemAPITestCase(TimesheetBaseTestCase):
             organization=self.org2, branch=self.branch2, full_name="Boshqa"
         )
         other_timesheet = EmployeeTimesheet.objects.create(
-            branch=self.branch2, for_month=1
+            branch=self.branch2, year=2026, for_month=1
         )
         EmployeeTimesheetItem.objects.create(
             employee_timesheet=other_timesheet,
@@ -277,10 +618,101 @@ class EmployeeTimesheetItemAPITestCase(TimesheetBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
 
-    def create_item(self):
-        """Tabelga bitta qator qo'shadi."""
-        return EmployeeTimesheetItem.objects.create(
-            employee_timesheet=self.timesheet,
-            employee=self.employee,
-            date=JAN_10,
+
+class EmployeeTimesheetItemBulkCreateTestCase(TimesheetBaseTestCase):
+    def test_bulk_create_items_success(self):
+        second = self.hire("Xodim 2")
+        rows = [
+            {
+                "employee": str(self.employee.id),
+                "date": "2026-01-12T00:00:00+05:00",
+                "work_hour_in_plan": "8.00",
+                "input_date": "2026-01-12T09:00:00+05:00",
+                "output_date": "2026-01-12T17:00:00+05:00",
+            },
+            {
+                "employee": str(second.id),
+                "date": "2026-01-12T00:00:00+05:00",
+                "work_hour_in_plan": "8.00",
+            },
+        ]
+        response = self.client.post(BULK_URL, self.bulk_data(rows), format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(EmployeeTimesheetItem.objects.count(), 2)
+        first = EmployeeTimesheetItem.objects.get(employee=self.employee)
+        self.assertEqual(str(first.work_hour_in_fact), "8.00")
+
+    def test_bulk_create_items_invalid_row_saves_nothing(self):
+        rows = [
+            {"employee": str(self.employee.id), "date": "2026-01-12T00:00:00+05:00"},
+            {"employee": str(self.employee.id), "date": "2026-02-12T00:00:00+05:00"},
+        ]
+        response = self.client.post(BULK_URL, self.bulk_data(rows), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(EmployeeTimesheetItem.objects.count(), 0)
+
+    def test_bulk_create_items_duplicate_in_payload_invalid_data(self):
+        row = {"employee": str(self.employee.id), "date": "2026-01-12T00:00:00+05:00"}
+        response = self.client.post(BULK_URL, self.bulk_data([row, row]), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(EmployeeTimesheetItem.objects.count(), 0)
+
+    def test_bulk_create_items_existing_day_invalid_data(self):
+        self.create_item(date=jan(12))
+        response = self.client.post(BULK_URL, self.bulk_data(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_create_items_not_employed_invalid_data(self):
+        late = self.hire("Yangi xodim", date=datetime.date(2026, 1, 20))
+        rows = [{"employee": str(late.id), "date": "2026-01-12T00:00:00+05:00"}]
+        response = self.client.post(BULK_URL, self.bulk_data(rows), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_create_items_other_branch_employee_invalid_data(self):
+        other = Employee.objects.create(
+            organization=self.org2, branch=self.branch2, full_name="Boshqa"
         )
+        rows = [{"employee": str(other.id), "date": "2026-01-12T00:00:00+05:00"}]
+        response = self.client.post(BULK_URL, self.bulk_data(rows), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_create_items_unknown_employee_invalid_data(self):
+        rows = [
+            {
+                "employee": "00000000-0000-0000-0000-000000000000",
+                "date": "2026-01-12T00:00:00+05:00",
+            }
+        ]
+        response = self.client.post(BULK_URL, self.bulk_data(rows), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_create_items_hours_out_of_range_invalid_data(self):
+        rows = [
+            {
+                "employee": str(self.employee.id),
+                "date": "2026-01-12T00:00:00+05:00",
+                "work_hour_in_plan": "30.00",
+            }
+        ]
+        response = self.client.post(BULK_URL, self.bulk_data(rows), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_create_items_empty_list_invalid_data(self):
+        response = self.client.post(BULK_URL, self.bulk_data([]), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_create_items_approved_timesheet_invalid_data(self):
+        self.approve_ready()
+        response = self.client.post(BULK_URL, self.bulk_data(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_create_items_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(BULK_URL, self.bulk_data(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_bulk_create_items_forbidden_without_permission(self):
+        self.client.force_authenticate(self.user_org2)
+        response = self.client.post(BULK_URL, self.bulk_data(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

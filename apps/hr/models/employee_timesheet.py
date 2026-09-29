@@ -1,8 +1,15 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 from apps.base.models import BaseModel
 
 from .employee import Employee
+
+
+def current_year():
+    """Joriy (mahalliy) yilni qaytaradi — tabel yili standart qiymati."""
+    return timezone.localdate().year
 
 
 class EmployeeTimesheet(BaseModel):
@@ -32,6 +39,12 @@ class EmployeeTimesheet(BaseModel):
         db_index=True,
         verbose_name="Filial",
     )
+    year = models.PositiveSmallIntegerField(
+        default=current_year,
+        validators=[MinValueValidator(2000), MaxValueValidator(2100)],
+        db_index=True,
+        verbose_name="Yil",
+    )
     for_month = models.PositiveSmallIntegerField(
         choices=Month.choices, db_index=True, verbose_name="Oy"
     )
@@ -47,9 +60,16 @@ class EmployeeTimesheet(BaseModel):
         db_table = "hr_employee_timesheet"
         verbose_name = "Xodimlar tabeli"
         verbose_name_plural = "Xodimlar tabellari"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["branch", "year", "for_month"],
+                condition=models.Q(is_active=True) & ~models.Q(status="cancelled"),
+                name="unique_live_timesheet_per_branch_month",
+            )
+        ]
 
     def __str__(self):
-        return f"{self.branch} — {self.get_for_month_display()}"
+        return f"{self.branch} — {self.year} {self.get_for_month_display()}"
 
 
 class EmployeeTimesheetItem(BaseModel):
