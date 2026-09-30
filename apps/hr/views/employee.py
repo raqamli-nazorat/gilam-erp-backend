@@ -25,6 +25,7 @@ class EmployeeViewSet(BaseManageViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = EmployeeFilter
     search_fields = [
+        "personnel_tab_number",
         "full_name",
         "phone_number",
         "passport_seria",
@@ -33,7 +34,7 @@ class EmployeeViewSet(BaseManageViewSet):
         "stir",
         "address",
     ]
-    ordering_fields = ["full_name", "created_at"]
+    ordering_fields = ["personnel_tab_number", "full_name", "created_at"]
 
     @action(detail=False, methods=["get"])
     def count(self, request):
