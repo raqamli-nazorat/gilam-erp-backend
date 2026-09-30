@@ -1,10 +1,14 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
+from django.db import connection, models, transaction
+from django.db.models import Max
 from django.utils import timezone
 
 from apps.base.models import BaseModel
 
 from .employee import Employee
+
+# Tabel raqamini berishda ishlatiladigan PostgreSQL advisory lock kaliti
+TAB_NUMBER_LOCK = 7301
 
 
 def current_year():
@@ -55,6 +59,26 @@ class EmployeeTimesheet(BaseModel):
         db_index=True,
         verbose_name="Holati",
     )
+
+    tab_number = models.PositiveIntegerField(
+        unique=True, editable=False, verbose_name="Tabel raqami"
+    )
+
+    def save(self, *args, **kwargs):
+        """Yangi tabelga avtomatik ketma-ket tabel raqami beradi."""
+        if self._state.adding and self.tab_number is None:
+            with transaction.atomic():
+                # Bir vaqtda yaratishda bir xil raqam chiqmasligi uchun qulflanadi
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT pg_advisory_xact_lock(%s)", [TAB_NUMBER_LOCK]
+                    )
+                last = EmployeeTimesheet.objects.aggregate(last=Max("tab_number"))[
+                    "last"
+                ]
+                self.tab_number = (last or 0) + 1
+                return super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     class Meta:
         db_table = "hr_employee_timesheet"

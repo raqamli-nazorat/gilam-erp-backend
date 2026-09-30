@@ -126,6 +126,16 @@ class EmployeeTimesheetAPITestCase(TimesheetBaseTestCase):
         self.assertEqual(response.data["results"][0]["items_count"], 0)
         self.assertEqual(response.data["results"][0]["year"], 2026)
 
+    def test_create_timesheet_assigns_sequential_tab_number(self):
+        second = EmployeeTimesheet.objects.create(
+            branch=self.branch1, year=2027, for_month=3
+        )
+        self.assertEqual(second.tab_number, self.timesheet.tab_number + 1)
+        response = self.client.get(TIMESHEETS_URL, {"search": str(second.tab_number)})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        numbers = [row["tab_number"] for row in response.data["results"]]
+        self.assertIn(second.tab_number, numbers)
+
     def test_list_timesheets_scoped_to_own_branches(self):
         EmployeeTimesheet.objects.create(branch=self.branch2, year=2026, for_month=2)
         response = self.client.get(TIMESHEETS_URL)
