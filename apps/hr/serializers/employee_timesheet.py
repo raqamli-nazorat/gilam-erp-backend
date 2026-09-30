@@ -170,7 +170,7 @@ class EmployeeTimesheetItemSerializer(BaseModelSerializer):
             "employee_timesheet": {
                 "fields": ["id", "branch", "year", "for_month", "status"]
             },
-            "employee": {"fields": ["id", "full_name"]},
+            "employee": {"fields": ["id", "personnel_tab_number", "full_name"]},
         }
 
     def _value(self, attrs, name):

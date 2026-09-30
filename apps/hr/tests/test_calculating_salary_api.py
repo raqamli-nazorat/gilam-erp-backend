@@ -451,8 +451,8 @@ class CalculateSalaryTestCase(SalaryBaseTestCase):
         self.add_document(fine)
         self.calculate()
         salary = CalculatingSalary.objects.get(employee=self.employee)
-        # 3 750 000 + 100 × 12 500 − 10% × 3 750 000 = 4 625 000
-        self.assertEqual(salary.amount, Decimal("4625000.00"))
+        # 3 750 000 + 100 × 12 500 − 10% × 5 000 000 (fix_summa) = 4 500 000
+        self.assertEqual(salary.amount, Decimal("4500000.00"))
 
     def test_calculate_salary_ignores_draft_documents(self):
         self.prepare()

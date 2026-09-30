@@ -167,6 +167,22 @@ class EmployeeAPITestCase(HRBaseAPITestCase):
         self.assertEqual(employee.organization, self.org1)
         self.assertEqual(employee.branch, self.branch1)
 
+    def test_create_employee_assigns_sequential_personnel_tab_number(self):
+        first = Employee.objects.create(
+            organization=self.org1, branch=self.branch1, full_name="Birinchi"
+        )
+        second = Employee.objects.create(
+            organization=self.org1, branch=self.branch1, full_name="Ikkinchi"
+        )
+        self.assertEqual(second.personnel_tab_number, first.personnel_tab_number + 1)
+        self.client.force_authenticate(self.user_org1)
+        response = self.client.get(
+            "/api/v1/hr/employees/", {"search": str(second.personnel_tab_number)}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        numbers = [item["personnel_tab_number"] for item in response.data["results"]]
+        self.assertIn(second.personnel_tab_number, numbers)
+
     def test_create_employee_branch_from_other_org_fails(self):
         self.client.force_authenticate(self.user_org1)
         response = self.client.post(

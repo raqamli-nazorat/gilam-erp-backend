@@ -16,5 +16,7 @@ class EmployeeLedgerSerializer(BaseModelSerializer):
         ]
         related_fields = {
             "branch": {"fields": ["id", "name"]},
-            "employee": {"fields": ["id", "full_name", "phone_number"]},
+            "employee": {
+                "fields": ["id", "personnel_tab_number", "full_name", "phone_number"]
+            },
         }

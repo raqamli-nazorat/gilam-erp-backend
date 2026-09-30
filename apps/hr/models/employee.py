@@ -1,6 +1,10 @@
-from django.db import models
+from django.db import connection, models, transaction
+from django.db.models import Max
 
 from apps.base.models import BaseModel
+
+# Xodim tabel raqamini berishda ishlatiladigan PostgreSQL advisory lock kaliti
+EMPLOYEE_TAB_NUMBER_LOCK = 7302
 
 
 class Employee(BaseModel):
@@ -56,6 +60,25 @@ class Employee(BaseModel):
         max_length=255, blank=True, default="", verbose_name="Telefon raqami"
     )
     description = models.TextField(blank=True, default="", verbose_name="Tavsifi")
+    personnel_tab_number = models.PositiveIntegerField(
+        unique=True, editable=False, verbose_name="Tabel raqami"
+    )
+
+    def save(self, *args, **kwargs):
+        """Yangi xodimga avtomatik ketma-ket tabel raqami beradi."""
+        if self._state.adding and self.personnel_tab_number is None:
+            with transaction.atomic():
+                # Bir vaqtda yaratishda bir xil raqam chiqmasligi uchun qulflanadi
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT pg_advisory_xact_lock(%s)", [EMPLOYEE_TAB_NUMBER_LOCK]
+                    )
+                last = Employee.objects.aggregate(last=Max("personnel_tab_number"))[
+                    "last"
+                ]
+                self.personnel_tab_number = (last or 0) + 1
+                return super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     class Meta:
         db_table = "hr_employee"

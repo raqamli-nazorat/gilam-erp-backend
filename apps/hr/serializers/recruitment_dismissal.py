@@ -93,7 +93,9 @@ class RecruitmentDismissalSerializer(BaseModelSerializer):
         ]
         related_fields = {
             "branch": {"fields": ["id", "name"]},
-            "employee": {"fields": ["id", "full_name", "phone_number"]},
+            "employee": {
+                "fields": ["id", "personnel_tab_number", "full_name", "phone_number"]
+            },
             "position": {"fields": ["id", "name"]},
         }
         read_only_fields = ["status"]
@@ -170,7 +172,9 @@ class EmployeeRecruitmentSerializer(BaseModelSerializer):
         ]
         related_fields = {
             "branch": {"fields": ["id", "name"]},
-            "employee": {"fields": ["id", "full_name", "phone_number"]},
+            "employee": {
+                "fields": ["id", "personnel_tab_number", "full_name", "phone_number"]
+            },
             "position": {"fields": ["id", "name"]},
         }
 
@@ -243,7 +247,9 @@ class EmployeeDismissalSerializer(BaseModelSerializer):
         model = RecruitmentDismissal
         fields = ["id", "status", "employee", "dismissal_reason"]
         related_fields = {
-            "employee": {"fields": ["id", "full_name", "phone_number"]},
+            "employee": {
+                "fields": ["id", "personnel_tab_number", "full_name", "phone_number"]
+            },
         }
 
     def validate(self, attrs):

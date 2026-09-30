@@ -92,7 +92,7 @@ class AccrualRetentionDocumentSerializer(BaseModelSerializer):
         read_only_fields = ["status", "cancel_reason", "cancel_attachment"]
         related_fields = {
             "branch": {"fields": ["id", "name"]},
-            "employee": {"fields": ["id", "full_name"]},
+            "employee": {"fields": ["id", "personnel_tab_number", "full_name"]},
             "accrual_retention": {
                 "fields": ["id", "name", "type", "is_retention", "value", "currency"]
             },
