@@ -135,13 +135,17 @@ def _documents_by_employee(branch, month, year, employee_ids):
     return grouped
 
 
-def _adjustments_total(documents, base, rates):
-    """Hujjatlar bo'yicha qo'shimchalar (+) va ushlanmalar (−) yig'indisini UZS da hisoblaydi."""
+def _adjustments_total(documents, fix_summa, rates):
+    """Hujjatlar bo'yicha qo'shimchalar (+) va ushlanmalar (−) yig'indisini UZS da hisoblaydi.
+
+    Foizli hujjatlar xodimning belgilangan (fiksa) summasidan hisoblanadi,
+    soat nisbati qo'llanilgan asosiy summadan emas.
+    """
     total = Decimal(0)
     for document in documents:
         accrual = document.accrual_retention
         if accrual.type == AccrualRetention.Type.PERCENT:
-            amount = base * accrual.value / Decimal(100)
+            amount = fix_summa * accrual.value / Decimal(100)
         else:
             day = timezone.localtime(document.date).date()
             key = (accrual.currency_id, day)
@@ -165,7 +169,7 @@ def _compute_amount(record, hours, documents, rates):
         return None, "Tabelda rejadagi ish soati yo'q."
     ratio = min((hours["fact"] or Decimal(0)) / hours["plan"], Decimal(1))
     base = (record.fix_summa * ratio).quantize(CENT, rounding=ROUND_HALF_UP)
-    total = base + _adjustments_total(documents, base, rates)
+    total = base + _adjustments_total(documents, record.fix_summa, rates)
     return max(total, Decimal(0)).quantize(CENT, rounding=ROUND_HALF_UP), None
 
 
@@ -174,7 +178,7 @@ def calculate_salaries(branch, month, year):
     """Filial va oy bo'yicha ishlayotgan xodimlar oyligini hisoblab, qoralama qatorlarini yaratadi.
 
     Formula: belgilangan summa × (haqiqiy soat / rejadagi soat, ko'pi bilan 1) ±
-    tasdiqlangan hujjatlar (foiz — asosiy oylikdan, summa — hujjat sanasi kursi bilan).
+    tasdiqlangan hujjatlar (foiz — belgilangan summadan, summa — hujjat sanasi kursi bilan).
     Mavjud qoralama yangilanadi, tasdiqlangan oylik bor xodim o'tkazib yuboriladi.
     """
     uzs = Currency.objects.active().filter(short_name="UZS").first()
