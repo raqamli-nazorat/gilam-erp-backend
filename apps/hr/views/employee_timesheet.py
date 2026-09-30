@@ -30,8 +30,8 @@ class EmployeeTimesheetViewSet(BaseManageViewSet):
     serializer_class = EmployeeTimesheetSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = EmployeeTimesheetFilter
-    search_fields = ["branch__name"]
-    ordering_fields = ["for_month", "created_at", "updated_at"]
+    search_fields = ["branch__name", "tab_number"]
+    ordering_fields = ["tab_number", "for_month", "created_at", "updated_at"]
     action_permissions = {
         "count": ["hr.view_employeetimesheet"],
         "approve": ["hr.change_employeetimesheet"],

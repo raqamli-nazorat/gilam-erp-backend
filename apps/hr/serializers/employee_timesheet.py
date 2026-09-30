@@ -80,6 +80,7 @@ class EmployeeTimesheetSerializer(BaseModelSerializer):
         model = EmployeeTimesheet
         fields = [
             "id",
+            "tab_number",
             "branch",
             "year",
             "for_month",
@@ -88,7 +89,7 @@ class EmployeeTimesheetSerializer(BaseModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["status"]
+        read_only_fields = ["status", "tab_number"]
         related_fields = {
             "branch": {"fields": ["id", "name"]},
         }
