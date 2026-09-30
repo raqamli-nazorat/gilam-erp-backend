@@ -21,6 +21,7 @@ class EmployeeSerializer(BaseModelSerializer):
         model = Employee
         fields = [
             "id",
+            "personnel_tab_number",
             "organization",
             "branch",
             "full_name",
@@ -37,6 +38,7 @@ class EmployeeSerializer(BaseModelSerializer):
             "created_at",
             "updated_at",
         ]
+        read_only_fields = ["personnel_tab_number"]
         extra_kwargs = {
             "organization": {"required": False},
         }
